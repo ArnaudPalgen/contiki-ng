@@ -102,7 +102,7 @@
 #ifdef LOG_CONF_OUTPUT_PREFIX
 #define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_CONF_OUTPUT_PREFIX(level, levelstr, module)
 #else /* LOG_CONF_OUTPUT_PREFIX */
-#define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_OUTPUT("[%-4s: %-10s] ", levelstr, module)
+#define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_OUTPUT("[%lu: %-4s: %-10s] ", clock_seconds(), levelstr, module)
 #endif /* LOG_CONF_OUTPUT_PREFIX */
 
 /******************************************************************************/

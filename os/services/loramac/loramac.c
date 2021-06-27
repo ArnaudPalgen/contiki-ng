@@ -23,6 +23,8 @@ static lora_addr_t node_addr;
 //MAC state
 static state_t state;
 
+static void (* upper_layer)(lora_addr_t src, lora_addr_t dest, void* data) = NULL;
+
 //timers
 static struct ctimer retransmit_timer;
 static struct ctimer query_timer;
@@ -255,6 +257,7 @@ on_data(lora_frame_t* frame)
             setState(READY);
         }
         //todo send data to interface
+        upper_layer(frame->src_addr, frame->dest_addr, frame->payload);
     }
 }
 
@@ -356,6 +359,12 @@ mac_init()
     LOG_DBG("initialization complete\n");
 }
 
+void
+loramac_set_input_callback(void (* listener)(lora_addr_t src, lora_addr_t dest, void* data))
+{
+    upper_layer = listener;
+}
+
 /*---------------------------------------------------------------------------*/
 /* TX process */
 PROCESS_THREAD(mac_tx, ev, data){
@@ -404,7 +413,7 @@ PROCESS_THREAD(mac_tx, ev, data){
                 LOG_DBG("state is READY\n");
 
             }
-            
+
             while(!mutex_try_lock(&tx_buf_mutex)){}
             buf_not_empty = (buf_len>0);
             LOG_WARN("buf not empty: %d\n", buf_not_empty);

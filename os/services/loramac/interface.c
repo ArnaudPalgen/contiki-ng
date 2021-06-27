@@ -7,6 +7,18 @@
 #define LOG_LEVEL LOG_LEVEL_DBG
 #define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
+void
+lora2ipv6()
+{
+
+}
+/*---------------------------------------------------------------------------*/
+void
+ipv62lora()
+{
+
+}
+/*---------------------------------------------------------------------------*/
 static void
 init(void)
 {   
@@ -17,14 +29,14 @@ init(void)
 /*---------------------------------------------------------------------------*/
 static int
 output(void)
-{//send data to loramac
+{//send data from ipv6 to loramac
   return 0;
 }
 /*---------------------------------------------------------------------------*/
 static void
 loramac_input_callback(lora_addr_t src, lora_addr_t dest, void* data)
-{
-  
+{//data from loramac -> ipv6
+
 }
 /*---------------------------------------------------------------------------*/
 const struct uip_fallback_interface loramac_interface = {

@@ -10,7 +10,7 @@
 #include "rn2483radio.h"
 
 /*---------------------------------------------------------------------------*/
-//variables definition
+/* Log configuration */
 
 #define LOG_MODULE "LoRa MAC"
 #define LOG_LEVEL LOG_LEVEL_DBG
@@ -35,7 +35,8 @@ static uint8_t buf_len = 0;// current size of the buffer
 mutex_t tx_buf_mutex;// mutex for tx_buffer
 
 static lora_frame_t last_send_frame;
-static bool seq = false;
+static uint8_t expected_seq = 0;
+static uint8_t next_seq = 0;
 static uint8_t retransmit_attempt=0;
 
 static process_event_t new_tx_frame_event;//event that signals to the TX process that a new frame is available to be sent 
@@ -44,7 +45,7 @@ static process_event_t state_change_event;//event that signals to the TX process
 PROCESS(mac_tx, "LoRa-MAC tx process");
 
 /*---------------------------------------------------------------------------*/
-//logging functions
+/* Logging functions */
 void print_lora_addr(lora_addr_t *addr){
     printf("%d:%d", addr->prefix, addr->id);
 }
@@ -58,7 +59,7 @@ void print_lora_frame(lora_frame_t *frame){
         frame->next, frame->command, frame->payload);
 }
 /*---------------------------------------------------------------------------*/
-//functions that check dest of a lora_addr
+/* Functions that check dest of a lora_addr */
 bool forDag(lora_addr_t *dest_addr){
     // if frame is for this RPL root or for RPL child of this root
     return dest_addr->prefix == node_addr.prefix || dest_addr->id == node_addr.id;
@@ -72,17 +73,23 @@ bool forChild(lora_addr_t *dest_addr){
     return dest_addr->prefix == node_addr.prefix && dest_addr->id != node_addr.id;
 }
 /*---------------------------------------------------------------------------*/
-void setState(state_t new_state){
+void
+setState(state_t new_state)
+{
     state = new_state;
     process_post(&mac_tx, state_change_event, NULL);
 }
 
-void phy_send(lora_frame_t frame){
+void
+phy_send(lora_frame_t frame)
+{
     phy_timeout(0);//disable watchdog timer
     phy_tx(frame);
 }
 
-int mac_send(lora_frame_t frame){
+int
+enqueue_packet(lora_frame_t frame)
+{
     LOG_DBG("MAC_SEND frame: ");
     LOG_DBG_LR_FRAME(&frame);
     
@@ -96,7 +103,9 @@ int mac_send(lora_frame_t frame){
         w_i = (w_i+1)%BUF_SIZE;
         mutex_unlock(&tx_buf_mutex);
         LOG_DBG("post new_tx_frame_event to TX_PROCESS\n");
-        process_post(&mac_tx, new_tx_frame_event, NULL);        
+        
+        // signal to process that a packet has been enqueued 
+        process_post(&mac_tx, new_tx_frame_event, NULL);
         return 0;
     }else{
         LOG_INFO("TX buffer full\n");
@@ -105,7 +114,9 @@ int mac_send(lora_frame_t frame){
     }
 }
 
-void send_ack(lora_addr_t ack_dest_addr, bool ack_seq){
+void
+send_ack(lora_addr_t ack_dest_addr, uint8_t ack_seq)
+{
     static lora_frame_t ack_frame;
     
     ack_frame.src_addr = node_addr;
@@ -123,9 +134,10 @@ void send_ack(lora_addr_t ack_dest_addr, bool ack_seq){
 }
 
 /*---------------------------------------------------------------------------*/
-
-//timeout callback functions
-void retransmit_timeout(void *ptr){
+/* Timeout callback functions */
+void
+retransmit_timeout(void *ptr)
+{
     LOG_INFO("retransmit timeout !\n");
     LOG_ERR("STOP retransmit timer thanks to retransmit_timeout\n");
     ctimer_stop(&retransmit_timer);
@@ -134,7 +146,7 @@ void retransmit_timeout(void *ptr){
         LOG_DBG_LR_FRAME(&last_send_frame);
         phy_send(last_send_frame);
         retransmit_attempt ++;
-        LOG_ERR("RESTART retransmit timer because retransmit frame\n");
+        LOG_ERR("RESTART retransmit timer because a frame was retransmit\n");
         phy_timeout(RX_TIME);
         phy_rx();
         ctimer_restart(&retransmit_timer);
@@ -142,39 +154,39 @@ void retransmit_timeout(void *ptr){
         LOG_INFO("Unable to send frame ");
         LOG_INFO_LR_FRAME(&last_send_frame);
         retransmit_attempt = 0;
-        seq = !seq;
         if(last_send_frame.command==QUERY){
-            LOG_DBG("START query_timer because last send frame is a QUERY");
+            LOG_DBG("START query_timer because last send frame is a QUERY\n");
             ctimer_restart(&query_timer);
         }
         setState(READY);
     }
 }
 
-void query_timeout(void *ptr){
-    LOG_INFO("query timeout !\n");
+void
+query_timeout(void *ptr)
+{
+    LOG_INFO("Query timeout !\n");
     LOG_ERR("STOP query timer thanks to query_timeout\n");
     ctimer_stop(&query_timer);
     lora_frame_t query_frame;
     query_frame.src_addr = node_addr;
     query_frame.dest_addr=root_addr;
     query_frame.k=false;
-    query_frame.seq=seq;
+    query_frame.seq=next_seq;
     query_frame.next=false;
     query_frame.command=QUERY;
     query_frame.payload="";
-    // = {node_addr, root_addr, false, seq, false, QUERY, ""};
     LOG_DBG("query frame built\n");
-    mac_send(query_frame);
+    enqueue_packet(query_frame);
 }
 /*---------------------------------------------------------------------------*/
-
-
-void on_join_response(lora_frame_t* frame){
+/* Packet processing functions */
+void
+on_join_response(lora_frame_t* frame)
+{
     LOG_DBG("JOIN RESPONSE\n");
-    if(state == ALONE && forRoot(&(frame->dest_addr)) && strlen(frame->payload) == 2){
+    if(state == ALONE && forRoot(&(frame->dest_addr)) && strlen(frame->payload) == 2 && frame->seq == last_send_frame.seq){
         node_addr.prefix = (uint8_t) strtol(frame->payload, NULL, 16);
-        //state = JOINED;
         LOG_DBG("state = READY\n");
         setState(READY);
         LOG_DBG("STOP retransmit timer\n");
@@ -185,78 +197,95 @@ void on_join_response(lora_frame_t* frame){
         LOG_INFO_LR_ADDR(&node_addr);
         LOG_INFO("\n");
 
-        send_ack(root_addr, seq);
-        seq = !seq;
+        next_seq++;
         
         LOG_DBG("START TX_PROCESS\n");
         process_start(&mac_tx, NULL);
         LOG_DBG("SET query timer\n");
         ctimer_set(&query_timer, QUERY_TIMEOUT, query_timeout, NULL);
-
-    }
-    else if(state != ALONE && forRoot(&(frame->dest_addr)) && strlen(frame->payload) == 2){
-        send_ack(root_addr, false);
+    }else{
+        LOG_WARN("Incorrect JOIN_RESPONSE\n");
     }
 }
 
-void on_data(lora_frame_t* frame){
+void
+on_data(lora_frame_t* frame)
+{
     LOG_INFO("ON_DATA!\n");
 
     LOG_DBG("STOP retransmit and query timeout\n");
     ctimer_stop(&retransmit_timer);
     ctimer_stop(&query_timer);
 
-    if(forRoot(&(frame->dest_addr))){
-        LOG_DBG("Data for root\n");//todo send payload to upper layer
-
-    }else if(state == READY && forChild(&(frame->dest_addr))){
-        LOG_DBG("Data for child\n");//todo send to RPL
-    }
-
-    if(frame->k){
-        //incoming frame need an ack
-        send_ack(frame->dest_addr, seq);
-    }
-    seq = !seq;
-    if(frame->next){
-        //more data will follow -> listen
-        LOG_DBG("More data will follow -> listen\n");
-        phy_timeout(RX_TIME);
-        phy_rx();
+    if(frame->seq < expected_seq){
+        /* should not happen */
+        LOG_WARN("sequence number smaller than expected\n");
+        if(frame->k){
+            send_ack(frame->dest_addr, frame->seq);
+        }
     }else{
-        //no data follows -> response to the query is complete
-        //-> restart the query_timer
-        LOG_DBG("no data follows -> state=Ready and restart query_timer\n");
-        ctimer_restart(&query_timer);
+        if(frame->seq >= expected_seq){
+            /* lost (frame->seq - expected_seq) packets */
+        }
+        expected_seq = frame->seq+1;
+        if(frame->k){
+            /* incoming frame need an ack */
+            send_ack(frame->dest_addr, frame->seq);
+        }
+        if(frame->next){
+            LOG_DBG("More data will follow -> listen\n");
+            
+            /* puts the radio in listening mode */
+            phy_timeout(RX_TIME);
+            phy_rx();
+
+            /** restart retransmit timer because next is true. i.e. a packet is expected.
+             *  if a retransmit timeout occur, it's because the packet has not been received.
+             *  The ack retransmission asks to the root node to retransmit the packet.
+             */
+            ctimer_restart(&retransmit_timer);
+        }else{
+            /** No data follows i.e. response to the QUERY is complete
+             *  -> retart the query_timer
+             *  -> set state to READY beacause state was set to
+             *     WAIT_RESPONSE when sending the request
+             */
+            LOG_DBG("no data follows -> state=Ready and restart query_timer\n");
+            ctimer_restart(&query_timer);
+            setState(READY);
+        }
+        //todo send data to interface
+    }
+}
+
+void
+on_ack(lora_frame_t* frame)
+{
+    LOG_INFO("ACK!\n");
+    LOG_DBG("STOP retransmit timer thanks to ACK\n");
+    if(frame->seq != last_send_frame.seq){
+        /* the node can only receive an ack for the last packet sent */
+        LOG_WARN("Incorrect ACK SN:\n  expected:%d actual:%d", last_send_frame.seq, frame->seq);
+    }else{
+        ctimer_stop(&retransmit_timer);
+        if(last_send_frame.command==QUERY){
+            ctimer_restart(&query_timer);
+        }
         setState(READY);
     }
 }
 
-void on_ack(lora_frame_t* frame){
-    LOG_INFO("ACK!\n");
-    LOG_DBG("STOP retransmit timer thanks to ACK\n");
-    ctimer_stop(&retransmit_timer);
-    seq=!seq;
-    if(last_send_frame.command==QUERY){
-        ctimer_restart(&query_timer);
-    }
-    setState(READY);
-
-}
-
-int lora_rx(lora_frame_t frame){
-    
+int
+lora_rx(lora_frame_t frame)
+{
     LOG_INFO("RX LoRa frame: ");
     LOG_INFO_LR_FRAME(&frame);
     
-    if(!forDag(&(frame.dest_addr)) || frame.seq != seq){//dest addr is not the node -> drop frame
-        if(frame.seq != seq){
-            LOG_INFO("unexpected SN -> retransmit last frame\n");
-            ctimer_stop(&retransmit_timer);
-            retransmit_timeout(NULL);
-            //phy_send(last_send_frame);
-        }
-        LOG_DBG("drop frame\n");
+    if(!forDag(&(frame.dest_addr))){
+        /** dest addr is not for the node or for his dodag
+         *  -> drop frame
+         */
+        LOG_DBG("not for me -> drop frame\n");
         return 0;
     }
 
@@ -279,13 +308,18 @@ int lora_rx(lora_frame_t frame){
     }
     return 0;
 }
-
-int send(lora_addr_t to, bool need_ack,void* data){
+/*---------------------------------------------------------------------------*/
+/* Driver functions */
+int
+mac_send_packet(lora_addr_t to, bool need_ack,void* data)
+{
     lora_frame_t frame = {node_addr, to, need_ack, false, false, DATA, data};
-    return mac_send(frame);
+    return enqueue_packet(frame);
 }
 
-void mac_init(){
+void 
+mac_init()
+{
     LOG_INFO("Init LoRa MAC\n");
     /* set custom link_addr */
     unsigned char new_linkaddr[8] = {'_','u','m','o','n','s',linkaddr_node_addr.u8[LINKADDR_SIZE - 2],linkaddr_node_addr.u8[LINKADDR_SIZE - 1]};
@@ -301,7 +335,7 @@ void mac_init(){
     node_addr.prefix = node_id;//first 8 bits of the node_id
     node_addr.id = node_id;
 
-    /* set initial state*/
+    /* set initial state */
     state = ALONE;
     LOG_DBG("initial state: %d\n", state);
 
@@ -312,7 +346,7 @@ void mac_init(){
     phy_init();
     phy_register_listener(&lora_rx);
 
-    lora_frame_t join_frame = {node_addr, root_addr, false, false, false, JOIN, ""};
+    lora_frame_t join_frame = {node_addr, root_addr, false, next_seq, false, JOIN, ""};
     last_send_frame = join_frame;
     phy_send(join_frame);
     phy_timeout(RX_TIME);
@@ -323,8 +357,8 @@ void mac_init(){
 }
 
 /*---------------------------------------------------------------------------*/
+/* TX process */
 PROCESS_THREAD(mac_tx, ev, data){
-    
     
     bool buf_not_empty = true;
     
@@ -334,8 +368,7 @@ PROCESS_THREAD(mac_tx, ev, data){
     while(true){
         PROCESS_WAIT_EVENT_UNTIL(ev==new_tx_frame_event);
         do
-        {
-            
+        {   
             //acquire mutex for buffer
             while(!mutex_try_lock(&tx_buf_mutex)){}
 
@@ -350,7 +383,8 @@ PROCESS_THREAD(mac_tx, ev, data){
             
             mutex_unlock(&tx_buf_mutex);
             
-            last_send_frame.seq = seq;
+            last_send_frame.seq = next_seq;
+            next_seq++;
             phy_timeout(0);//disable watchdog timer
             phy_tx(last_send_frame);
             LOG_DBG("frame sended to PHY layer\n");
@@ -369,9 +403,8 @@ PROCESS_THREAD(mac_tx, ev, data){
                 }
                 LOG_DBG("state is READY\n");
 
-            }else{
-                seq = !seq;
             }
+            
             while(!mutex_try_lock(&tx_buf_mutex)){}
             buf_not_empty = (buf_len>0);
             LOG_WARN("buf not empty: %d\n", buf_not_empty);

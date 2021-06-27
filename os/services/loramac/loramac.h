@@ -34,7 +34,7 @@
 /*---------------------------------------------------------------------------*/
 typedef enum state{
     ALONE, //initial state
-    JOINED, // when node has received the prefix
+    //JOINED, // when node has received the prefix
     READY, // when node has start RPL
     WAIT_RESPONSE
 }state_t;

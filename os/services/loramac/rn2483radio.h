@@ -79,7 +79,7 @@ typedef struct lora_frame{
     lora_addr_t src_addr;
     lora_addr_t dest_addr;
     bool k;
-    bool seq;
+    uint8_t seq;
     bool next;
     mac_command_t command;
     char* payload;

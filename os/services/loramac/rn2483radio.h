@@ -13,8 +13,7 @@
 #define UART_EXP_RESP_SIZE 2 // size of array that contain uart expected responses
 
 #define K_FLAG 0x80
-#define SEQ_FLAG 0x40
-#define NEXT_FLAG 0x20
+#define NEXT_FLAG 0x40
 
 #define LOG_INFO_UFRAME(...)    LOG_UFRAME(LOG_LEVEL_INFO, __VA_ARGS__)
 #define LOG_DBG_UFRAME(...)    LOG_UFRAME(LOG_LEVEL_DBG, __VA_ARGS__)
@@ -82,6 +81,9 @@ typedef struct lora_frame{
     uint8_t seq;
     bool next;
     mac_command_t command;
+    
+    // must be hex char ex: AFF08
+    //todo support any data type
     char* payload;
 
 }lora_frame_t;

@@ -110,15 +110,20 @@ int parse(lora_frame_t *dest, char *data){
     uint8_t command_filter = 0x0F;
 
     bool k    = (bool)((i_cmd >> 7) & flag_filter);
-    bool seq  = (bool)((i_cmd >> 6) & flag_filter);
-    bool next = (bool)((i_cmd >> 5) & flag_filter);
+    bool next = (bool)((i_cmd >> 6) & flag_filter);
     
     mac_command_t command = (uint8_t)( i_cmd & command_filter );
     
     result.k = k;
     result.command = command;
-    result.seq = seq;
     result.next = next;
+
+    /* extract SN */
+    char sn_c[2];
+    memcpy(sn_c, data, 2);
+    data = data+2;
+    uint8_t sn = (uint8_t)strtol(sn_c, NULL, 16);
+    result.seq = sn;
 
     /*extract payload*/
     result.payload = data;
@@ -147,22 +152,24 @@ int to_frame(lora_frame_t *frame, char *dest){
     if(frame->k){
         f_c = f_c | K_FLAG;
     }
-    if(frame->seq){
-        f_c = f_c | SEQ_FLAG;
-    }
     if(frame->next){
         f_c = f_c | NEXT_FLAG;
     }
     f_c = f_c | ((uint8_t) frame->command);
 
-    sprintf(flags_command, "%02X", f_c);   
+    sprintf(flags_command, "%02X", f_c);
+
+    /* create SN */
+    char sn[2];
+    sprintf(sn, "%02X", frame->seq);
     
     /* concat all computed values to result */
     strcat(result, src_addr);
     strcat(result, dest_addr);
     strcat(result, flags_command);
+    strcat(result, sn);
     
-    /* create payload */
+    /* create payload *///todo
     int real_frame_size = HEADER_SIZE;
     if(frame->payload != NULL){
         real_frame_size = real_frame_size + strlen(frame->payload);

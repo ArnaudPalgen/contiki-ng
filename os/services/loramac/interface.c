@@ -8,7 +8,7 @@
 #define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 void
-lora2ipv6()
+lora2ipv6(lora_addr_t *l, uip_ipaddr_t)
 {
 
 }

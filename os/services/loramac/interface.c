@@ -21,7 +21,7 @@ void ipv62lora()
 static void
 init(void)
 {
-  LOG_INFO("Init LoRaMAC Interface");
+  LOG_INFO("Init LoRaMAC Interface\n");
   //loramac_set_input_callback(loramac_input_callback)
   //mac_init();
   process_start(&loramac_process, NULL);

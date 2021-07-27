@@ -12,25 +12,6 @@
 
 #define BUF_SIZE 10
 
-//logging macros
-#define LOG_INFO_LR_FRAME(...)    LOG_LR_FRAME(LOG_LEVEL_INFO, __VA_ARGS__)
-#define LOG_DBG_LR_FRAME(...)    LOG_LR_FRAME(LOG_LEVEL_DBG, __VA_ARGS__)
-
-#define LOG_LR_FRAME(level, lora_frame) do {  \
-                           if(level <= (LOG_LEVEL)) { \
-                                print_lora_frame(lora_frame); \
-                           } \
-                         } while (0)
-
-#define LOG_INFO_LR_ADDR(...)    LOG_LR_ADDR(LOG_LEVEL_INFO, __VA_ARGS__)
-#define LOG_DBG_LR_ADDR(...)    LOG_LR_ADDR(LOG_LEVEL_DBG, __VA_ARGS__)
-
-#define LOG_LR_ADDR(level, lora_addr) do {  \
-                           if(level <= (LOG_LEVEL)) { \
-                                print_lora_addr(lora_addr); \
-                           } \
-                         } while (0)
-
 /*---------------------------------------------------------------------------*/
 typedef enum state{
     ALONE, //initial state

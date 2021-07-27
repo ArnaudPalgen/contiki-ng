@@ -6,7 +6,7 @@
 #define pwr 5
 #define UART 1
 
-#define HEADER_SIZE 14
+#define HEADER_SIZE 16
 #define PAYLOAD_MAX_SIZE 20//todo ajuster
 #define FRAME_SIZE (HEADER_SIZE+PAYLOAD_MAX_SIZE)
 
@@ -14,6 +14,7 @@
 
 #define K_FLAG 0x80
 #define NEXT_FLAG 0x40
+
 
 #define LOG_INFO_UFRAME(...)    LOG_UFRAME(LOG_LEVEL_INFO, __VA_ARGS__)
 #define LOG_DBG_UFRAME(...)    LOG_UFRAME(LOG_LEVEL_DBG, __VA_ARGS__)
@@ -23,6 +24,8 @@
                                 print_uart_frame(uart_frame); \
                            } \
                          } while (0)
+
+
 
 /*---------------------------------------------------------------------------*/
 /*enum definition*/
@@ -116,3 +119,26 @@ int uart_tx(uart_frame_t frame);
 void process(uart_frame_t uart_frame);
 
 void print_uart_frame(uart_frame_t *frame);
+
+void print_lora_frame(lora_frame_t *frame);
+void print_lora_addr(lora_addr_t *addr);
+
+
+//logging macros
+#define LOG_INFO_LR_FRAME(...)    LOG_LR_FRAME(LOG_LEVEL_INFO, __VA_ARGS__)
+#define LOG_DBG_LR_FRAME(...)    LOG_LR_FRAME(LOG_LEVEL_DBG, __VA_ARGS__)
+
+#define LOG_LR_FRAME(level, lora_frame) do {  \
+                           if(level <= (LOG_LEVEL)) { \
+                                print_lora_frame(lora_frame); \
+                           } \
+                         } while (0)
+
+#define LOG_INFO_LR_ADDR(...)    LOG_LR_ADDR(LOG_LEVEL_INFO, __VA_ARGS__)
+#define LOG_DBG_LR_ADDR(...)    LOG_LR_ADDR(LOG_LEVEL_DBG, __VA_ARGS__)
+
+#define LOG_LR_ADDR(level, lora_addr) do {  \
+                           if(level <= (LOG_LEVEL)) { \
+                                print_lora_addr(lora_addr); \
+                           } \
+                         } while (0)

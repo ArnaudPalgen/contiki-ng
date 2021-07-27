@@ -10,7 +10,7 @@
 /*---------------------------------------------------------------------------*/
 //log configuration
 #define LOG_MODULE "LoRa PHY"
-#define LOG_LEVEL LOG_LEVEL_INFO
+#define LOG_LEVEL LOG_LEVEL_DBG
 #define LOG_CONF_WITH_COLOR 3
 
 //TX buffer initialization
@@ -57,6 +57,20 @@ void print_uart_frame(uart_frame_t *frame){
     printf("%s] }",uart_response[f_expected_response[UART_EXP_RESP_SIZE-1]]);
     
 }
+
+void print_lora_addr(lora_addr_t *addr){
+    printf("%d:%d", addr->prefix, addr->id);
+}
+
+void print_lora_frame(lora_frame_t *frame){
+    printf("{src:");
+    print_lora_addr(&(frame->src_addr));
+    printf(" dest:");
+    print_lora_addr(&(frame->dest_addr));
+    printf(" k:%d seq:%d next:%d cmd:%d data:%s\n", frame->k, frame->seq,\
+        frame->next, frame->command, frame->payload);
+}
+
 /*build lora_frame_t from char**/
 int parse(lora_frame_t *dest, char *data){
 
@@ -135,7 +149,10 @@ int parse(lora_frame_t *dest, char *data){
 
 /*convert lora_frame_t to hex*/
 int to_frame(lora_frame_t *frame, char *dest){
-    
+    LOG_DBG("to frame receive: ");
+    LOG_DBG_LR_FRAME(frame);
+    LOG_DBG("\n");
+
     char result[HEADER_SIZE+PAYLOAD_MAX_SIZE]="";
 
     /*create src and dest addr*/
@@ -144,6 +161,10 @@ int to_frame(lora_frame_t *frame, char *dest){
     
     sprintf(src_addr, "%02X%04X", frame->src_addr.prefix, frame->src_addr.id);
     sprintf(dest_addr, "%02X%04X", frame->dest_addr.prefix, frame->dest_addr.id);
+
+    LOG_DBG("src.prefix: %d\n", frame->src_addr.prefix);
+    LOG_DBG("src addr: %s\n", src_addr);
+    LOG_DBG("dest addr: %s\n", dest_addr);
     
     /*create flags and MAC command*/
     char flags_command[2];
@@ -162,6 +183,8 @@ int to_frame(lora_frame_t *frame, char *dest){
     /* create SN */
     char sn[2];
     sprintf(sn, "%02X", frame->seq);
+    LOG_DBG("flags and command:%s\n", flags_command);
+    LOG_DBG("SN:%s\n", sn);
     
     /* concat all computed values to result */
     strcat(result, src_addr);

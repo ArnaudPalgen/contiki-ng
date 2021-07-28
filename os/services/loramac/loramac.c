@@ -309,7 +309,7 @@ lora_rx(lora_frame_t frame)
             //}
             break;
         case ACK:
-            //on_ack(&frame);
+            on_ack(&frame);
             break;
         default:
             LOG_WARN("Unknown MAC command %d\n", command);

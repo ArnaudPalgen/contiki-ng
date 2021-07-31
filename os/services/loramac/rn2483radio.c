@@ -10,7 +10,7 @@
 /*---------------------------------------------------------------------------*/
 //log configuration
 #define LOG_MODULE "LoRa PHY"
-#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_LEVEL LOG_LEVEL_INFO
 #define LOG_CONF_WITH_COLOR 3
 
 //TX buffer initialization
@@ -209,7 +209,7 @@ int to_frame(lora_frame_t *frame, char *dest){
 }
 
 void write_uart(char *s){
-    LOG_INFO("Write UART:%s\n", s);
+    LOG_INFO("PHY TX:%s\n", s);
     while(*s != 0){
         uart_write_byte(UART, *s++);
     }
@@ -225,7 +225,7 @@ void phy_register_listener(int (* listener)(lora_frame_t frame)){
 /*---------------------------------------------------------------------------*/
 
 void process_command(unsigned char *command){
-    LOG_INFO("UART response:%s\n", command);
+    LOG_DBG("UART response:%s\n", command);
 
     lora_frame_t frame;
 
@@ -233,7 +233,8 @@ void process_command(unsigned char *command){
     for(int i=0;i<UART_EXP_RESP_SIZE;i++){
         LOG_DBG("compare response with:%s\n",uart_response[expected_response[i]]);
         if(strstr((const char*)command, uart_response[expected_response[i]]) != NULL){
-            /*the UART response is the exoetced response*/
+            /*the UART response is the expected response*/
+            LOG_INFO("PHY RX:%s\n", (char*)(command+10));
             if(expected_response[i] == UART_RADIO_RX && parse(&frame, (char*)(command+10))==0){
                 /*receive data -> transmit to MAC layer*/
                 handler(frame);

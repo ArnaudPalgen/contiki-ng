@@ -45,11 +45,11 @@ typedef enum mac_command {
     JOIN_RESPONSE,
     DATA,
     ACK,
-    PING,
-    PONG,
+    PING,// a supprimer
+    PONG,// a supprimer
     QUERY,
-    CHILD,
-    CHILD_RESPONSE 
+    CHILD,// a supprimer
+    CHILD_RESPONSE// a supprimer
 }mac_command_t;
 
 typedef enum uart_frame_type{

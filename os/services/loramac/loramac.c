@@ -37,7 +37,7 @@ static uint8_t buf_len = 0;// current size of the buffer
 mutex_t tx_buf_mutex;// mutex for tx_buffer
 
 static lora_frame_t last_send_frame;
-//static uint8_t expected_seq = 0;
+static uint8_t expected_seq = 0;
 static uint8_t next_seq = 0;
 static uint8_t retransmit_attempt=0;
 
@@ -116,7 +116,7 @@ enqueue_packet(lora_frame_t frame)
     }
 }
 
-/*
+
 void
 send_ack(lora_addr_t ack_dest_addr, uint8_t ack_seq)
 {
@@ -133,9 +133,10 @@ send_ack(lora_addr_t ack_dest_addr, uint8_t ack_seq)
     LOG_DBG("SEND ack %d to ", ack_frame.seq);
     LOG_DBG_LR_ADDR(&(ack_frame.dest_addr));
     LOG_DBG("\n");
-    send_to_phy(ack_frame);
+    //send_to_phy(ack_frame);
+    enqueue_packet(ack_frame);
 }
-*/
+
 /*---------------------------------------------------------------------------*/
 /* Timeout callback functions */
 void
@@ -209,11 +210,12 @@ on_join_response(lora_frame_t* frame)
         process_start(&mac_tx, NULL);
         LOG_DBG("SET query timer\n");
         ctimer_set(&query_timer, QUERY_TIMEOUT, query_timeout, NULL);
+        expected_seq ++;
     }else{
         LOG_WARN("Incorrect JOIN_RESPONSE\n");
     }
 }
-/*
+
 void
 on_data(lora_frame_t* frame)
 {
@@ -224,7 +226,7 @@ on_data(lora_frame_t* frame)
     ctimer_stop(&query_timer);
 
     if(frame->seq < expected_seq){
-        // should not happen
+        //the root has not received the last ack -> retransmit
         LOG_WARN("sequence number smaller than expected\n");
         if(frame->k){
             send_ack(frame->dest_addr, frame->seq);
@@ -232,6 +234,7 @@ on_data(lora_frame_t* frame)
     }else{
         if(frame->seq >= expected_seq){
             // lost (frame->seq - expected_seq) packets
+            LOG_WARN("lost %d frames\n", (frame->seq - expected_seq));
         }
         expected_seq = frame->seq+1;
         if(frame->k){
@@ -261,10 +264,10 @@ on_data(lora_frame_t* frame)
             setState(READY);
         }
         //todo send data to interface
-        upper_layer(frame->src_addr, frame->dest_addr, frame->payload);
+        //upper_layer(frame->src_addr, frame->dest_addr, frame->payload);
     }
 }
-*/
+
 
 void
 on_ack(lora_frame_t* frame)
@@ -304,9 +307,9 @@ lora_rx(lora_frame_t frame)
             on_join_response(&frame);
             break;
         case DATA:
-            //if(state != ALONE){
-            //    on_data(&frame);
-            //}
+            if(state != ALONE){
+                on_data(&frame);
+            }
             break;
         case ACK:
             on_ack(&frame);

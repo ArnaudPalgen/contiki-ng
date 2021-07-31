@@ -232,7 +232,7 @@ on_data(lora_frame_t* frame)
             send_ack(frame->dest_addr, frame->seq);
         }
     }else{
-        if(frame->seq >= expected_seq){
+        if(frame->seq > expected_seq){
             // lost (frame->seq - expected_seq) packets
             LOG_WARN("lost %d frames\n", (frame->seq - expected_seq));
         }

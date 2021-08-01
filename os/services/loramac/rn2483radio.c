@@ -234,9 +234,9 @@ void process_command(unsigned char *command){
         LOG_DBG("compare response with:%s\n",uart_response[expected_response[i]]);
         if(strstr((const char*)command, uart_response[expected_response[i]]) != NULL){
             /*the UART response is the expected response*/
-            LOG_INFO("PHY RX:%s\n", (char*)(command+10));
             if(expected_response[i] == UART_RADIO_RX && parse(&frame, (char*)(command+10))==0){
                 /*receive data -> transmit to MAC layer*/
+                LOG_INFO("PHY RX:%s\n", (char*)(command+10));
                 handler(frame);
             }
             /* signal to the tx process that the next frame can be sent*/

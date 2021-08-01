@@ -130,10 +130,11 @@ send_ack(lora_addr_t ack_dest_addr, uint8_t ack_seq)
     ack_frame.dest_addr = ack_dest_addr;
 
     last_send_frame = ack_frame;
-    LOG_DBG("SEND ack %d to ", ack_frame.seq);
+    LOG_DBG("send ack %d to ", ack_frame.seq);
     LOG_DBG_LR_ADDR(&(ack_frame.dest_addr));
     LOG_DBG("\n");
     //send_to_phy(ack_frame);
+    //last_send_frame = ack_frame;
     enqueue_packet(ack_frame);
 }
 
@@ -229,7 +230,7 @@ on_data(lora_frame_t* frame)
         //the root has not received the last ack -> retransmit
         LOG_WARN("sequence number smaller than expected\n");
         if(frame->k){
-            send_ack(frame->dest_addr, frame->seq);
+            send_ack(frame->src_addr, frame->seq);
         }
     }else{
         if(frame->seq > expected_seq){
@@ -239,7 +240,7 @@ on_data(lora_frame_t* frame)
         expected_seq = frame->seq+1;
         if(frame->k){
             // incoming frame need an ack
-            send_ack(frame->dest_addr, frame->seq);
+            send_ack(frame->src_addr, frame->seq);
         }
         if(frame->next){
             LOG_DBG("More data will follow -> listen\n");

@@ -193,17 +193,20 @@ int to_frame(lora_frame_t *frame, char *dest){
     strcat(result, sn);
     
     /* create payload *///todo
-    int real_frame_size = HEADER_SIZE;
+    int payload_size = 0;
     if(frame->payload != NULL){
-        real_frame_size = real_frame_size + strlen(frame->payload);
+        payload_size = strlen(frame->payload);
     } 
     //int size = HEADER_SIZE+payload_size+9;//todo + 9 why ?
-    if(real_frame_size>HEADER_SIZE){
+    if(payload_size>0){
+        if(payload_size%2 != 0){
+            strcat(result, "0");
+        }
         strcat(result, frame->payload);
     }
     
     /*copy result to dest */
-    memcpy(dest, &result, real_frame_size+1);
+    memcpy(dest, &result, HEADER_SIZE+payload_size+1);
     LOG_DBG("TO HEX frame: %s\n",result);
     return 0;
 }

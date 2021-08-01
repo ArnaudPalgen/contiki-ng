@@ -269,6 +269,12 @@ on_data(lora_frame_t* frame)
     }
 }
 
+int
+mac_send_packet(lora_addr_t to, bool need_ack, void* data)
+{
+    lora_frame_t frame = {node_addr, to, need_ack, false, false, DATA, data};
+    return enqueue_packet(frame);
+}
 
 void
 on_ack(lora_frame_t* frame)
@@ -284,6 +290,7 @@ on_ack(lora_frame_t* frame)
             ctimer_restart(&query_timer);
         }
         setState(READY);
+        //mac_send_packet(root_addr, true, "ABC");
     }
 }
 
@@ -322,14 +329,8 @@ lora_rx(lora_frame_t frame)
 }
 /*---------------------------------------------------------------------------*/
 /* Driver functions */
-/*
-int
-mac_send_packet(lora_addr_t to, bool need_ack,void* data)
-{
-    lora_frame_t frame = {node_addr, to, need_ack, false, false, DATA, data};
-    return enqueue_packet(frame);
-}
-*/
+
+
 
 void 
 mac_init()

@@ -9,13 +9,38 @@
 #define LOG_CONF_WITH_COLOR 3
 
 PROCESS(loramac_process, "LoRaMAC-interface");
+/*
+typedef union uip_ip6addr_t {
+  uint8_t  u8[16];                      //Initializer, must come first.
+  uint16_t u16[8];
+} uip_ip6addr_t;
+
+typedef uip_ip6addr_t uip_ipaddr_t;
+*/
+/*
+|<-----1----->|<--5-->|<-----1----->|<--1-->|<----------6---------->|<---2--->|
+| IPv6 PREFIX | ZEROS | LORA PREFIX | ZEROS | COMMON_LINK_ADDR_PART | NODE_ID |
+ 0           0 1     5 6           6 7     7 8                    13 14     15
+
+ typedef struct lora_addr{
+    uint8_t prefix;
+    uint16_t id;
+}lora_addr_t;
+
+IPv6_PREFIX = "FD00"
+COMMON_LINK_ADDR_PART = "5F756D6F6E73"
+*/
 /*---------------------------------------------------------------------------*/
-void lora2ipv6(lora_addr_t *l, uip_ipaddr_t toto)
+void lora2ipv6(lora_addr_t *src_addr, uip_ipaddr_t *dest_addr)
 {
+  uip_ip6addr_u8(dest_addr, 0xFD, 0, 0, 0, 0, 0, src_addr->prefix, 0, '_','u','m','o','n','s', src_addr->id>>8, src_addr->id);
+
 }
 /*---------------------------------------------------------------------------*/
-void ipv62lora()
+void ipv62lora(uip_ipaddr_t *src_addr, lora_addr_t *dest_addr)
 {
+  dest_addr->prefix = src_addr->u8[6];
+  dest_addr->id = src_addr->u8[14] + ((src_addr->u8[15]) << 8);
 }
 /*---------------------------------------------------------------------------*/
 static void

@@ -47,10 +47,16 @@ void ipv62lora(uip_ip6addr_t *src_addr, lora_addr_t *dest_addr)
 static void
 init(void)
 {
-  LOG_INFO("Init LoRaMAC Interface\n");
+  
   //loramac_set_input_callback(loramac_input_callback)
   //mac_init();
-  process_start(&loramac_process, NULL);
+  LOG_INFO("Welcome to LoRaMAC interface !\n");
+  #ifdef IS_ROOT
+    LOG_INFO("Init LoRaMAC Interface\n");
+    process_start(&loramac_process, NULL);
+  #else
+    LOG_INFO("Not the root -> Do nothing for LoRaMAC\n");
+  #endif
 }
 /*---------------------------------------------------------------------------*/
 static int
@@ -100,13 +106,14 @@ const struct uip_fallback_interface loramac_interface = {
 PROCESS_THREAD(loramac_process, ev, data)
 {
   PROCESS_BEGIN();
-  //LOG_INFO("Welcome !\n");
+  LOG_INFO("Welcome !\n");
   //NETSTACK_MAC.off();
-  //LOG_INFO("NetStack OFF\n");
-  //PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
-  //LOG_INFO("Button pushed\n");
-  //mac_init();
+  LOG_INFO("NetStack OFF\n");
+  PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
+  LOG_INFO("Button pushed\n");
+  mac_init();
   //PROCESS_WAIT_EVENT_UNTIL(ev == loramac_joined);
   //NETSTACK_MAC.on();
+  LOG_INFO("NetStack ON\n");
   PROCESS_END();
 }

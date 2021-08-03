@@ -44,7 +44,7 @@ static uint8_t retransmit_attempt=0;
 static process_event_t new_tx_frame_event;//event that signals to the TX process that a new frame is available to be sent 
 static process_event_t state_change_event;//event that signals to the TX process that ..TODO
 
-static process_event_t loramac_joined;
+//static process_event_t loramac_joined;
 
 PROCESS(mac_tx, "LoRa-MAC tx process");
 
@@ -213,7 +213,7 @@ on_join_response(lora_frame_t* frame)
         LOG_INFO_LR_ADDR(&node_addr);
         printf("\n");
 
-        process_post(PROCESS_BROADCAST,loramac_joined,NULL);
+        //process_post(PROCESS_BROADCAST,loramac_joined,NULL);
         
         LOG_DBG("START TX_PROCESS\n");
         process_start(&mac_tx, NULL);
@@ -367,7 +367,7 @@ mac_init()
 
     new_tx_frame_event = process_alloc_event();
     state_change_event = process_alloc_event();
-    loramac_joined = process_alloc_event();
+    //loramac_joined = process_alloc_event();
 
     /* start phy layer */
     phy_init();

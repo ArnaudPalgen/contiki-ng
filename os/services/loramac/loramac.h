@@ -13,7 +13,7 @@
 
 #define BUF_SIZE 10
 
-#define IS_ROOT 1
+//#define IS_ROOT 1
 
 /*---------------------------------------------------------------------------*/
 //static process_event_t loramac_joined;

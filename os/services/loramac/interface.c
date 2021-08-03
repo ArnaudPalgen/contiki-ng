@@ -31,13 +31,13 @@ IPv6_PREFIX = "FD00"
 COMMON_LINK_ADDR_PART = "5F756D6F6E73"
 */
 /*---------------------------------------------------------------------------*/
-void lora2ipv6(lora_addr_t *src_addr, uip_ipaddr_t *dest_addr)
+void lora2ipv6(lora_addr_t *src_addr, uip_ip6addr_t *dest_addr)
 {
   uip_ip6addr_u8(dest_addr, 0xFD, 0, 0, 0, 0, 0, src_addr->prefix, 0, '_','u','m','o','n','s', src_addr->id>>8, src_addr->id);
 
 }
 /*---------------------------------------------------------------------------*/
-void ipv62lora(uip_ipaddr_t *src_addr, lora_addr_t *dest_addr)
+void ipv62lora(uip_ip6addr_t *src_addr, lora_addr_t *dest_addr)
 {
   dest_addr->prefix = src_addr->u8[6];
   dest_addr->id = src_addr->u8[14] + ((src_addr->u8[15]) << 8);
@@ -55,6 +55,9 @@ init(void)
 static int
 output(void)
 { //send data from ipv6 to loramac
+  //mac_send_packet()
+  //uip_ip6addr_t
+  
   return 0;
 }
 /*---------------------------------------------------------------------------*/
@@ -67,7 +70,8 @@ loramac_input_callback(lora_addr_t src, lora_addr_t dest, void* data)
 */
 /*---------------------------------------------------------------------------*/
 const struct uip_fallback_interface loramac_interface = {
-    init, output};
+    init, output
+};
 /*---------------------------------------------------------------------------*/
 
 PROCESS_THREAD(loramac_process, ev, data)

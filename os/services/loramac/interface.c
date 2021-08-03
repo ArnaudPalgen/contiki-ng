@@ -1,7 +1,8 @@
 #include "net/ipv6/uip.h"
+#include "net/netstack.h"
 #include "loramac.h"
 #include "sys/log.h"
-#include "rn2483radio.h"
+//#include "rn2483radio.h"
 #include "dev/button-hal.h"
 
 #define LOG_MODULE "Interface"
@@ -55,8 +56,30 @@ init(void)
 static int
 output(void)
 { //send data from ipv6 to loramac
-  //mac_send_packet()
+  //mac_send_packet(lora_addr_t src_addr, bool need_ack, void* data)
   //uip_ip6addr_t
+  //UIP_BUFSIZE
+  //todo definir UIP_CONF_BUFFER_SIZE à 279: 247 du payload loramac + les deux addresses ipv6
+  //todo (src et dest ) pas utilisées
+  LOG_INFO("Receive data for loramac whouhouuuuuu\n");
+  char data[(UIP_CONF_BUFFER_SIZE-32)*2];
+  int uip_index = 0;
+  int data_index = 0;
+  
+  while(uip_index<UIP_CONF_BUFFER_SIZE){
+    if(uip_index==8){
+      // skip src and dest ipv6 addr
+      uip_index= UIP_IPH_LEN;
+    }
+
+    sprintf(data+data_index, "%02X", uip_buf[uip_index]);
+    data_index+=2;
+    uip_index++;
+  }
+  //UIP_IP_BUF->srcipaddr;
+  lora_addr_t src_addr;
+  ipv62lora(&(UIP_IP_BUF->srcipaddr), &src_addr);
+  mac_send_packet(src_addr, true, &data);
   
   return 0;
 }
@@ -77,9 +100,13 @@ const struct uip_fallback_interface loramac_interface = {
 PROCESS_THREAD(loramac_process, ev, data)
 {
   PROCESS_BEGIN();
-  LOG_INFO("Welcome !\n");
-  PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
-  LOG_INFO("Button pushed\n");
-  mac_init();
+  //LOG_INFO("Welcome !\n");
+  //NETSTACK_MAC.off();
+  //LOG_INFO("NetStack OFF\n");
+  //PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
+  //LOG_INFO("Button pushed\n");
+  //mac_init();
+  //PROCESS_WAIT_EVENT_UNTIL(ev == loramac_joined);
+  //NETSTACK_MAC.on();
   PROCESS_END();
 }

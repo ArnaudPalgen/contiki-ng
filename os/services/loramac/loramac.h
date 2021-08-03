@@ -1,3 +1,4 @@
+#include "rn2483radio.h"
 /*---------------------------------------------------------------------------*/
 //ROOT ADDR
 #define ROOT_PREFIX 1
@@ -12,7 +13,12 @@
 
 #define BUF_SIZE 10
 
+#define IS_ROOT 1
+
 /*---------------------------------------------------------------------------*/
+//static process_event_t loramac_joined;
+
+
 typedef enum state{
     ALONE, //initial state
     //JOINED, // when node has received the prefix
@@ -21,3 +27,6 @@ typedef enum state{
 }state_t;
 
 void mac_init();
+
+int
+mac_send_packet(lora_addr_t src_addr, bool need_ack, void* data);

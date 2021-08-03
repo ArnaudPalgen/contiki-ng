@@ -7,7 +7,7 @@
 #include "net/linkaddr.h"
 #include "sys/log.h"
 #include "sys/mutex.h"
-#include "rn2483radio.h"
+//#include "rn2483radio.h"
 
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
@@ -43,6 +43,8 @@ static uint8_t retransmit_attempt=0;
 
 static process_event_t new_tx_frame_event;//event that signals to the TX process that a new frame is available to be sent 
 static process_event_t state_change_event;//event that signals to the TX process that ..TODO
+
+static process_event_t loramac_joined;
 
 PROCESS(mac_tx, "LoRa-MAC tx process");
 
@@ -94,24 +96,29 @@ enqueue_packet(lora_frame_t frame)
 {
     LOG_DBG("Enter enqueue_packet with frame: ");
     LOG_DBG_LR_FRAME(&frame);
+    LOG_INFO("YOOOOOO 1\n");
     
     //acquire mutex for buffer
     while(!mutex_try_lock(&tx_buf_mutex)){}
+    LOG_INFO("YOOOOOO 2\n");
 
     if(buf_len <= BUF_SIZE){
         LOG_DBG("append to buffer\n");
         buffer[w_i] = frame;
         buf_len++;
         w_i = (w_i+1)%BUF_SIZE;
+        LOG_INFO("YOOOOOO 3\n");
         mutex_unlock(&tx_buf_mutex);
         LOG_DBG("post new_tx_frame_event to TX_PROCESS\n");
         
-        // signal to process that a packet has been enqueued 
+        // signal to process that a packet has been enqueued
+        LOG_INFO("YOOOOOO 4\n");
         process_post(&mac_tx, new_tx_frame_event, NULL);
         return 0;
     }else{
         LOG_INFO("TX buffer full\n");
         mutex_unlock(&tx_buf_mutex);
+        LOG_INFO("YOOOOOO 5\n");
         return 1;
     }
 }
@@ -206,6 +213,7 @@ on_join_response(lora_frame_t* frame)
         LOG_INFO_LR_ADDR(&node_addr);
         printf("\n");
 
+        process_post(PROCESS_BROADCAST,loramac_joined,NULL);
         
         LOG_DBG("START TX_PROCESS\n");
         process_start(&mac_tx, NULL);
@@ -270,9 +278,9 @@ on_data(lora_frame_t* frame)
 }
 
 int
-mac_send_packet(lora_addr_t to, bool need_ack, void* data)
+mac_send_packet(lora_addr_t src_addr, bool need_ack, void* data)
 {
-    lora_frame_t frame = {node_addr, to, need_ack, false, false, DATA, data};
+    lora_frame_t frame = {src_addr, root_addr, need_ack, 0, false, DATA, data};
     return enqueue_packet(frame);
 }
 
@@ -346,6 +354,8 @@ mac_init()
     LOG_INFO("New Link-layer address: ");
     LOG_INFO_LLADDR(&linkaddr_node_addr);
     LOG_INFO("\n");
+
+    #ifdef IS_ROOT
     
     /* set initial LoRa address */
     node_addr.prefix = node_id;//most significant 8 bits of the node_id
@@ -357,6 +367,7 @@ mac_init()
 
     new_tx_frame_event = process_alloc_event();
     state_change_event = process_alloc_event();
+    loramac_joined = process_alloc_event();
 
     /* start phy layer */
     phy_init();
@@ -371,6 +382,8 @@ mac_init()
     LOG_DBG("SET retransmit timer\n");
     ctimer_set(&retransmit_timer, RETRANSMIT_TIMEOUT, retransmit_timeout, NULL);
     LOG_DBG("initialization complete\n");
+    
+    #endif
 }
 /*
 void

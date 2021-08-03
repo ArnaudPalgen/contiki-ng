@@ -67,9 +67,12 @@ udp_rx_callback(struct simple_udp_connection *c,
 PROCESS_THREAD(udp_server_process, ev, data)
 {
   PROCESS_BEGIN();
-
+  LOG_INFO("Welcome server\n");
+  
   /* Initialize DAG root */
+  LOG_INFO("start RPL ROOT...\n");
   NETSTACK_ROUTING.root_start();
+  LOG_INFO("RPL ROOT started!\n");
 
   /* Initialize UDP connection */
   simple_udp_register(&udp_conn, UDP_SERVER_PORT, NULL,

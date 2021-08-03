@@ -55,6 +55,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   etimer_set(&periodic_timer, random_rand() % SEND_INTERVAL);
   while(1) {
+    LOG_INFO("UDP CLIENT\n");
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
 
     if(NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&root_ipaddr)) {

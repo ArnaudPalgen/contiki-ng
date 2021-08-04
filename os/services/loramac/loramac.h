@@ -13,10 +13,7 @@
 
 #define BUF_SIZE 10
 
-#define IS_ROOT 1
-
 /*---------------------------------------------------------------------------*/
-//static process_event_t loramac_joined;
 
 
 typedef enum state{
@@ -26,7 +23,11 @@ typedef enum state{
     WAIT_RESPONSE
 }state_t;
 
-void mac_init();
+void
+mac_init();
+
+void
+mac_root_start();
 
 int
 mac_send_packet(lora_addr_t src_addr, bool need_ack, void* data);

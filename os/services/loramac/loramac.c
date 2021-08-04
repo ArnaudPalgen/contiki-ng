@@ -44,7 +44,6 @@ static uint8_t retransmit_attempt=0;
 static process_event_t new_tx_frame_event;//event that signals to the TX process that a new frame is available to be sent 
 static process_event_t state_change_event;//event that signals to the TX process that ..TODO
 
-static process_event_t loramac_joined;
 
 PROCESS(mac_tx, "LoRa-MAC tx process");
 
@@ -213,7 +212,6 @@ on_join_response(lora_frame_t* frame)
         LOG_INFO_LR_ADDR(&node_addr);
         printf("\n");
 
-        process_post(PROCESS_BROADCAST,loramac_joined,NULL);
         
         LOG_DBG("START TX_PROCESS\n");
         process_start(&mac_tx, NULL);
@@ -354,9 +352,13 @@ mac_init()
     LOG_INFO("New Link-layer address: ");
     LOG_INFO_LLADDR(&linkaddr_node_addr);
     LOG_INFO("\n");
-
-    #ifdef IS_ROOT
     
+}
+
+void
+mac_root_start()
+{
+    LOG_INFO("Start LoRaMAC RPL root\n");
     /* set initial LoRa address */
     node_addr.prefix = node_id;//most significant 8 bits of the node_id
     node_addr.id = node_id;
@@ -367,7 +369,6 @@ mac_init()
 
     new_tx_frame_event = process_alloc_event();
     state_change_event = process_alloc_event();
-    loramac_joined = process_alloc_event();
 
     /* start phy layer */
     phy_init();
@@ -382,8 +383,6 @@ mac_init()
     LOG_DBG("SET retransmit timer\n");
     ctimer_set(&retransmit_timer, RETRANSMIT_TIMEOUT, retransmit_timeout, NULL);
     LOG_DBG("initialization complete\n");
-    
-    #endif
 }
 /*
 void

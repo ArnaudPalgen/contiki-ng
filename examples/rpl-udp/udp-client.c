@@ -12,7 +12,7 @@
 #define UDP_CLIENT_PORT	8765
 #define UDP_SERVER_PORT	5678
 
-#define SEND_INTERVAL		  (60 * CLOCK_SECOND)
+#define SEND_INTERVAL		  (30 * CLOCK_SECOND)
 
 static struct simple_udp_connection udp_conn;
 
@@ -65,7 +65,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
       LOG_INFO_("\n");
       snprintf(str, sizeof(str), "hello %d", count);
       simple_udp_sendto(&udp_conn, str, strlen(str), &dest_ipaddr);
-      simple_udp_sendto(&udp_conn, str, strlen(str), &root_ipaddr);
+      //simple_udp_sendto(&udp_conn, str, strlen(str), &root_ipaddr);
       count++;
     } else {
       LOG_INFO("Not reachable yet\n");

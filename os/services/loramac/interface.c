@@ -21,15 +21,15 @@ An IPv6 address is build as follow:
 Where:
   - IPv6 PREFIX is 0xFD
   - LORA PREFIX is The prefix of the lora_addr_t
-  - COMMON_LINK_ADDR_PART is the 6 first bytes of the link layer address and defined as follow: '_','u','m','o','n','s'
+  - COMMON_LINK_ADDR_PART is the 6 first bytes of the link layer address and defined as follow: 0x00, 0x12, 0x4B, 0x00, 0x06, 0x0D
   - NODE_ID is the node-id of the node
 
 */
 
 void lora2ipv6(lora_addr_t *src_addr, uip_ip6addr_t *dest_addr)
 {
-  uip_ip6addr_u8(dest_addr, 0xFD, 0, 0, 0, 0, 0, src_addr->prefix, 0, '_','u','m','o','n','s', src_addr->id>>8, src_addr->id);
-
+  uip_ip6addr_u8(dest_addr, 0xFD, 0, 0, 0, 0, 0, src_addr->prefix, 0, 0x00, 0x12, 0x4B, 0x00, 0x06, 0x0D, src_addr->id>>8, src_addr->id);
+  
 }
 
 void ipv62lora(uip_ip6addr_t *src_addr, lora_addr_t *dest_addr)
@@ -104,9 +104,9 @@ PROCESS_THREAD(loramac_process, ev, data)
   PROCESS_BEGIN();
   LOG_INFO("Welcome !\n");
   //NETSTACK_MAC.off();
+  //mac_init();
   PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
   LOG_INFO("Button pushed\n");
-  mac_init();
   
   #ifdef IS_ROOT
   

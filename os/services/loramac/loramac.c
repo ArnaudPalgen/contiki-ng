@@ -336,12 +336,12 @@ lora_rx(lora_frame_t frame)
 /* Driver functions */
 
 
-
+/*
 void 
 mac_init()
 {
     LOG_INFO("Init LoRa MAC\n");
-    /* set custom link_addr */
+    //set custom link_addr 
     unsigned char new_linkaddr[8] = {'_','u','m','o','n','s',linkaddr_node_addr.u8[LINKADDR_SIZE - 2],linkaddr_node_addr.u8[LINKADDR_SIZE - 1]};
     linkaddr_t new_addr;
     memcpy(new_addr.u8, new_linkaddr, 8*sizeof(unsigned char));
@@ -353,7 +353,7 @@ mac_init()
     LOG_INFO("\n");
     
 }
-
+*/
 void
 mac_root_start()
 {

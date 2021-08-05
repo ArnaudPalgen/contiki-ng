@@ -18,7 +18,7 @@
 
 //LoRa addr
 static const lora_addr_t root_addr={ROOT_PREFIX, ROOT_ID};
-static lora_addr_t node_addr;
+lora_addr_t loramac_addr;
 
 //MAC state
 static state_t state;
@@ -43,21 +43,22 @@ static uint8_t retransmit_attempt=0;
 
 static process_event_t new_tx_frame_event;//event that signals to the TX process that a new frame is available to be sent 
 static process_event_t state_change_event;//event that signals to the TX process that ..TODO
+process_event_t loramac_network_joined;
 
 PROCESS(mac_tx, "LoRa-MAC tx process");
 
 /* Functions that check dest of a lora_addr */
 bool forDag(lora_addr_t *dest_addr){
     // if frame is for this RPL root or for RPL child of this root
-    return dest_addr->prefix == node_addr.prefix || dest_addr->id == node_addr.id;
+    return dest_addr->prefix == loramac_addr.prefix || dest_addr->id == loramac_addr.id;
 }
 
 bool forRoot(lora_addr_t *dest_addr){
-    return dest_addr->prefix == node_addr.prefix && dest_addr->id == node_addr.id;
+    return dest_addr->prefix == loramac_addr.prefix && dest_addr->id == loramac_addr.id;
 }
 
 bool forChild(lora_addr_t *dest_addr){
-    return dest_addr->prefix == node_addr.prefix && dest_addr->id != node_addr.id;
+    return dest_addr->prefix == loramac_addr.prefix && dest_addr->id != loramac_addr.id;
 }
 /*---------------------------------------------------------------------------*/
 
@@ -127,7 +128,7 @@ send_ack(lora_addr_t ack_dest_addr, uint8_t ack_seq)
 {
     static lora_frame_t ack_frame;
     
-    ack_frame.src_addr = node_addr;
+    ack_frame.src_addr = loramac_addr;
     ack_frame.seq = ack_seq;
     ack_frame.command=ACK;
     ack_frame.next=false;
@@ -182,7 +183,7 @@ query_timeout(void *ptr)
     LOG_DBG("STOP query timer thanks to query_timeout\n");
     ctimer_stop(&query_timer);
     lora_frame_t query_frame;
-    query_frame.src_addr = node_addr;
+    query_frame.src_addr = loramac_addr;
     query_frame.dest_addr=root_addr;
     query_frame.k=false;
     query_frame.seq=next_seq;
@@ -200,7 +201,7 @@ on_join_response(lora_frame_t* frame)
 {
     LOG_DBG("JOIN RESPONSE\n");
     if(state == ALONE && forRoot(&(frame->dest_addr)) && strlen(frame->payload) == 2 && frame->seq == 0){
-        node_addr.prefix = (uint8_t) strtol(frame->payload, NULL, 16);
+        loramac_addr.prefix = (uint8_t) strtol(frame->payload, NULL, 16);
         LOG_DBG("state = READY\n");
         setState(READY);
         LOG_DBG("STOP retransmit timer\n");
@@ -208,7 +209,7 @@ on_join_response(lora_frame_t* frame)
         
         LOG_INFO("Lora Root joined\n");
         LOG_INFO("Node addr: ");
-        LOG_INFO_LR_ADDR(&node_addr);
+        LOG_INFO_LR_ADDR(&loramac_addr);
         printf("\n");
 
         
@@ -217,6 +218,7 @@ on_join_response(lora_frame_t* frame)
         LOG_DBG("SET query timer\n");
         ctimer_set(&query_timer, QUERY_TIMEOUT, query_timeout, NULL);
         expected_seq ++;
+        process_post(PROCESS_BROADCAST, loramac_network_joined, NULL);
     }else{
         LOG_WARN("Incorrect JOIN_RESPONSE\n");
     }
@@ -336,31 +338,33 @@ lora_rx(lora_frame_t frame)
 /* Driver functions */
 
 
-/*
+
 void 
 mac_init()
 {
     LOG_INFO("Init LoRa MAC\n");
     //set custom link_addr 
-    unsigned char new_linkaddr[8] = {'_','u','m','o','n','s',linkaddr_node_addr.u8[LINKADDR_SIZE - 2],linkaddr_node_addr.u8[LINKADDR_SIZE - 1]};
-    linkaddr_t new_addr;
-    memcpy(new_addr.u8, new_linkaddr, 8*sizeof(unsigned char));
-    linkaddr_set_node_addr(&new_addr);
+    //unsigned char new_linkaddr[8] = {'_','u','m','o','n','s',linkaddr_node_addr.u8[LINKADDR_SIZE - 2],linkaddr_node_addr.u8[LINKADDR_SIZE - 1]};
+    //linkaddr_t new_addr;
+    //memcpy(new_addr.u8, new_linkaddr, 8*sizeof(unsigned char));
+    //linkaddr_set_node_addr(&new_addr);
 
-    LOG_INFO("Node ID: %u\n", node_id);
-    LOG_INFO("New Link-layer address: ");
-    LOG_INFO_LLADDR(&linkaddr_node_addr);
-    LOG_INFO("\n");
+    //LOG_INFO("Node ID: %u\n", node_id);
+    //LOG_INFO("New Link-layer address: ");
+    //LOG_INFO_LLADDR(&linkaddr_node_addr);
+    //LOG_INFO("\n");
+
+    loramac_network_joined = process_alloc_event();
     
 }
-*/
+
 void
 mac_root_start()
 {
     LOG_INFO("Start LoRaMAC RPL root\n");
     /* set initial LoRa address */
-    node_addr.prefix = node_id;//most significant 8 bits of the node_id
-    node_addr.id = node_id;
+    loramac_addr.prefix = node_id;//most significant 8 bits of the node_id
+    loramac_addr.id = node_id;
 
     /* set initial state */
     state = ALONE;
@@ -373,7 +377,7 @@ mac_root_start()
     phy_init();
     phy_register_listener(&lora_rx);
 
-    lora_frame_t join_frame = {node_addr, root_addr, false, next_seq, false, JOIN, ""};
+    lora_frame_t join_frame = {loramac_addr, root_addr, false, next_seq, false, JOIN, ""};
     last_send_frame = join_frame;
     next_seq++;
     send_to_phy(join_frame);

@@ -70,9 +70,8 @@ PROCESS_THREAD(udp_server_process, ev, data)
   LOG_INFO("Welcome server\n");
   
   /* Initialize DAG root */
-  LOG_INFO("start RPL ROOT...\n");
-  NETSTACK_ROUTING.root_start();
-  LOG_INFO("RPL ROOT started!\n");
+  //LOG_INFO("start RPL ROOT...\n");
+  //LOG_INFO("RPL ROOT started!\n");
 
   /* Initialize UDP connection */
   simple_udp_register(&udp_conn, UDP_SERVER_PORT, NULL,

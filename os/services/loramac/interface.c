@@ -3,6 +3,7 @@
 #include "loramac.h"
 #include "sys/log.h"
 #include "dev/button-hal.h"
+#include "net/routing/routing.h"
 /*---------------------------------------------------------------------------*/
 #define LOG_MODULE "Interface"
 #define LOG_LEVEL LOG_LEVEL_DBG
@@ -21,14 +22,14 @@ An IPv6 address is build as follow:
 Where:
   - IPv6 PREFIX is 0xFD
   - LORA PREFIX is The prefix of the lora_addr_t
-  - COMMON_LINK_ADDR_PART is the 6 first bytes of the link layer address and defined as follow: 0x00, 0x12, 0x4B, 0x00, 0x06, 0x0D
+  - COMMON_LINK_ADDR_PART is the 6 first bytes of the link layer address and defined as follow: 0x02, 0x12, 0x4B, 0x00, 0x06, 0x0D
   - NODE_ID is the node-id of the node
 
 */
 
 void lora2ipv6(lora_addr_t *src_addr, uip_ip6addr_t *dest_addr)
 {
-  uip_ip6addr_u8(dest_addr, 0xFD, 0, 0, 0, 0, 0, src_addr->prefix, 0, 0x00, 0x12, 0x4B, 0x00, 0x06, 0x0D, src_addr->id>>8, src_addr->id);
+  uip_ip6addr_u8(dest_addr, 0xFD, 0, 0, 0, 0, 0, src_addr->prefix, 0, 0x02, 0x12, 0x4B, 0x00, 0x06, 0x0D, src_addr->id>>8, src_addr->id);
   
 }
 
@@ -46,6 +47,7 @@ init(void)
   //loramac_set_input_callback(loramac_input_callback)
   //mac_init();
   LOG_INFO("Welcome to LoRaMAC interface !\n");
+  mac_init();
   #ifdef IS_ROOT
     LOG_INFO("Init LoRaMAC Interface\n");
     process_start(&loramac_process, NULL);
@@ -102,16 +104,23 @@ const struct uip_fallback_interface loramac_interface = {
 PROCESS_THREAD(loramac_process, ev, data)
 {
   PROCESS_BEGIN();
+  
   LOG_INFO("Welcome !\n");
-  //NETSTACK_MAC.off();
-  //mac_init();
+  NETSTACK_MAC.off();
+  
   PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
   LOG_INFO("Button pushed\n");
   
-  #ifdef IS_ROOT
+  mac_root_start();
+  PROCESS_WAIT_EVENT_UNTIL(ev == loramac_network_joined);
+  LOG_INFO("RECEIVE LORAMAC JOINED EVENT !\n");
+
+  LOG_INFO("PREFIX: %d\n", loramac_addr.prefix);
+  uip_ipaddr_t prefix;
+  uip_ip6addr_u8(&prefix, 0xFD, 0, 0, 0, 0, 0, loramac_addr.prefix, 0, 0,0,0,0,0,0,0,0);
+  NETSTACK_ROUTING.root_set_prefix(&prefix, NULL);
+  NETSTACK_ROUTING.root_start();
+  NETSTACK_MAC.on();
   
-    mac_root_start();
-  
-  #endif
   PROCESS_END();
 }

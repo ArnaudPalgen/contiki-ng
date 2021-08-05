@@ -15,6 +15,8 @@
 
 /*---------------------------------------------------------------------------*/
 
+extern process_event_t loramac_network_joined;
+extern lora_addr_t loramac_addr;
 
 typedef enum state{
     ALONE, //initial state

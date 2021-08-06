@@ -218,6 +218,7 @@ void write_uart(char *s){
     }
     uart_write_byte(UART, '\r');
     uart_write_byte(UART, '\n');
+    LOG_DBG("phy tx done\n");
 }
 
 void phy_register_listener(int (* listener)(lora_frame_t frame)){
@@ -278,9 +279,18 @@ int uart_rx(unsigned char c){
 
 int uart_tx(uart_frame_t uart_frame){
     LOG_DBG("enter UART_TX\n");
+    if (uart_frame.type == LORA){
+        LOG_DBG("with lora frame: ");
+        lora_frame_t f = uart_frame.data.lora_frame;
+        LOG_DBG_LR_FRAME(&f);
+    }
     while(!mutex_try_lock(&tx_buf_mutex)){}
     if(tx_buf_size < TX_BUF_SIZE){
         tx_buffer[w_i] = uart_frame;
+        LOG_DBG("added frame uart frame that contains:\n");
+        lora_frame_t f42;
+        f42 = tx_buffer[w_i].data.lora_frame;
+        LOG_DBG_LR_FRAME(&f42);
         tx_buf_size ++;
         w_i = (w_i+1)%TX_BUF_SIZE;
         LOG_DBG("append ");
@@ -428,21 +438,33 @@ PROCESS_THREAD(ph_tx, ev, data){
         char result[FRAME_SIZE]="";
         if(uart_frame.type == STR){
             sprintf(result, "%s%s", uart_command[uart_frame.cmd], uart_frame.data.s);
-        }else if(uart_frame.type == LORA){
+        }else if(uart_frame.type == LORA){            
             strcat(result, uart_command[uart_frame.cmd]);
-            to_frame(&(uart_frame.data.lora_frame), result+strlen(result));
-        }else if(uart_frame.type == INT){
+
+            lora_frame_t frame = uart_frame.data.lora_frame;
+            LOG_DBG("COMPARE ");
+            LOG_DBG_LR_FRAME(&frame);
+            LOG_DBG("WITH ");
+            lora_frame_t ff;
+            ff = uart_frame.data.lora_frame;
+            LOG_DBG_LR_FRAME(&ff);
+            to_frame(&frame, result+strlen(result));
+            
+        }else if(uart_frame.type == INT){         
             sprintf(result, "%s%d", uart_command[uart_frame.cmd], uart_frame.data.d);
         }
-
+        LOG_DBG("will call write UART\n");
         write_uart(result);
+        LOG_DBG("write uart call ended\n");
         while(!can_send){
             PROCESS_WAIT_EVENT();
+            LOG_DBG("wait can send\n");
             if(ev == can_send_event){
                 can_send = true;
                 
             }
         }
+        LOG_DBG("can send !\n");
     }
 
     PROCESS_END();

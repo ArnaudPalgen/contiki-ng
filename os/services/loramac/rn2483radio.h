@@ -7,7 +7,7 @@
 #define UART 1
 
 #define HEADER_SIZE 16
-#define PAYLOAD_MAX_SIZE 20//todo ajuster
+#define PAYLOAD_MAX_SIZE (2*UIP_CONF_BUFFER_SIZE)
 #define FRAME_SIZE (HEADER_SIZE+PAYLOAD_MAX_SIZE)
 
 #define UART_EXP_RESP_SIZE 2 // size of array that contain uart expected responses

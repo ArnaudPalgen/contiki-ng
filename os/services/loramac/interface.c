@@ -47,7 +47,7 @@ init(void)
   //loramac_set_input_callback(loramac_input_callback)
   //mac_init();
   LOG_INFO("Welcome to LoRaMAC interface !\n");
-  mac_init();
+  //mac_init();
   #ifdef IS_ROOT
     LOG_INFO("Init LoRaMAC Interface\n");
     process_start(&loramac_process, NULL);
@@ -67,11 +67,11 @@ output(void)
 { 
 
   LOG_INFO("Receive data for loramac whouhouuuuuu\n");
-  char data[(UIP_CONF_BUFFER_SIZE-32)*2];
+  static char data[(UIP_CONF_BUFFER_SIZE-32)*2];
   int uip_index = 0;
   int data_index = 0;
   
-  while(uip_index<UIP_CONF_BUFFER_SIZE){
+  while(uip_index<uip_len){
     if(uip_index==8){
       // skip src and dest ipv6 addr
       uip_index= UIP_IPH_LEN;
@@ -84,6 +84,7 @@ output(void)
   lora_addr_t src_addr;
   ipv62lora(&(UIP_IP_BUF->srcipaddr), &src_addr);
   mac_send_packet(src_addr, true, &data);
+
   
   return 0;
 }

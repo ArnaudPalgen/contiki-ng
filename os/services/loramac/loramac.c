@@ -353,8 +353,6 @@ mac_init()
     //LOG_INFO("New Link-layer address: ");
     //LOG_INFO_LLADDR(&linkaddr_node_addr);
     //LOG_INFO("\n");
-
-    loramac_network_joined = process_alloc_event();
     
 }
 
@@ -370,6 +368,7 @@ mac_root_start()
     state = ALONE;
     LOG_DBG("initial state: %d\n", state);
 
+    loramac_network_joined = process_alloc_event();
     new_tx_frame_event = process_alloc_event();
     state_change_event = process_alloc_event();
 

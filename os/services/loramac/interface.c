@@ -103,6 +103,14 @@ loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)//current
     lora2ipv6(src, &ip_src);
     lora2ipv6(dest, &ip_dest);
 
+    LOG_INFO("decode src and dest IPv6 addr:\n");
+    LOG_INFO_6ADDR(&ip_src);
+    LOG_INFO("\n");
+    LOG_INFO_6ADDR(&ip_dest);
+    LOG_INFO("\n");
+
+    uint8_t ccurrent_int;
+
     while(i<UIP_BUFSIZE && *data !=0){
         if(i==8){//we have to write to ipv6 addresses
             memcpy(&(uip_buf[i]), &(ip_src.u8), 16);
@@ -113,7 +121,9 @@ loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)//current
         }
         memcpy(current_byte, data, 2);
         data+=2;
-        uip_buf[i]= (uint8_t) strtol(current_byte, NULL, 16);
+        ccurrent_int = (uint8_t) strtol(current_byte, NULL, 16);
+        LOG_INFO("WRITE %d to UIP_BUF\n", ccurrent_int);
+        uip_buf[i]=ccurrent_int;
         i+=1;
     }
     if(i < 8){//The IPv6 header is not complete
@@ -121,6 +131,7 @@ loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)//current
         uipbuf_clear();
     }else{//deliver the packet to the tcp/ip stack
         LOG_INFO("Deliver data to the TCP/IP stack\n");
+        uip_len = i-1;
         tcpip_input();
     }
 }

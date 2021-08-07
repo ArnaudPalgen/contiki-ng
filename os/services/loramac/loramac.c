@@ -23,7 +23,7 @@ lora_addr_t loramac_addr;
 //MAC state
 static state_t state;
 
-//static void (* upper_layer)(lora_addr_t src, lora_addr_t dest, void* data) = NULL;
+static void (* upper_layer)(lora_addr_t *src, lora_addr_t *dest, void* data) = NULL;
 
 //timers
 static struct ctimer retransmit_timer;
@@ -271,8 +271,11 @@ on_data(lora_frame_t* frame)
             ctimer_restart(&query_timer);
             setState(READY);
         }
-        //todo send data to interface
-        //upper_layer(frame->src_addr, frame->dest_addr, frame->payload);
+        if (upper_layer != NULL){//current
+            upper_layer(&(frame->src_addr), &(frame->dest_addr), frame->payload);
+        }else{
+            LOG_WARN("Please register an upper_layer\n");
+        }
     }
 }
 
@@ -386,13 +389,12 @@ mac_root_start()
     ctimer_set(&retransmit_timer, RETRANSMIT_TIMEOUT, retransmit_timeout, NULL);
     LOG_DBG("initialization complete\n");
 }
-/*
+
 void
-loramac_set_input_callback(void (* listener)(lora_addr_t src, lora_addr_t dest, void* data))
+loramac_set_input_callback(void (* listener)(lora_addr_t *src, lora_addr_t *dest, void* data))//current
 {
     upper_layer = listener;
 }
-*/
 /*---------------------------------------------------------------------------*/
 /* TX process */
 PROCESS_THREAD(mac_tx, ev, data){

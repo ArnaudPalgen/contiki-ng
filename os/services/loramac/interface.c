@@ -26,9 +26,9 @@ Where:
   - NODE_ID is the node-id of the node
 */
 
-void lora2ipv6(lora_addr_t *src_addr, uip_ip6addr_t *dest_addr)//review
+void lora2ipv6(lora_addr_t *src_addr, uip_ip6addr_t *dest_addr)//current
 {
-  uip_ip6addr_u8(dest_addr, 0xFD, 0, 0, 0, 0, 0, src_addr->prefix, 0, 0x02, 0x12, 0x4B, 0x00, 0x06, 0x0D, src_addr->id>>8, src_addr->id);
+  uip_ip6addr_u8(dest_addr, 0xFD, 0, 0, 0, 0, 0, 0, src_addr->prefix, 0x02, 0x12, 0x4B, 0x00, 0x06, 0x0D, src_addr->id>>8, src_addr->id);
   
 }
 
@@ -44,13 +44,11 @@ void ipv62lora(uip_ip6addr_t *src_addr, lora_addr_t *dest_addr)//done
 static void
 init(void)
 {
-  
-  //loramac_set_input_callback(loramac_input_callback)
-  //mac_init();
   LOG_INFO("Welcome to LoRaMAC interface !\n");
   //mac_init();
   #ifdef IS_ROOT
     LOG_INFO("Init LoRaMAC Interface\n");
+    
     process_start(&loramac_process, NULL);
   #else
     LOG_INFO("Not the root -> Do nothing for LoRaMAC\n");
@@ -92,7 +90,7 @@ output(void)//done
 /*---------------------------------------------------------------------------*/
 
 static void
-loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)#current
+loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)//current
 {//data from loramac -> ipv6
 
     uip_ip6addr_t ip_src, ip_dest;
@@ -128,7 +126,7 @@ const struct uip_fallback_interface loramac_interface = {
 };
 /*---------------------------------------------------------------------------*/
 
-PROCESS_THREAD(loramac_process, ev, data)
+PROCESS_THREAD(loramac_process, ev, data)//current
 {
   PROCESS_BEGIN();
   
@@ -138,7 +136,9 @@ PROCESS_THREAD(loramac_process, ev, data)
   PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
   LOG_INFO("Button pushed\n");
   
+  //loramac_set_input_callback(loramac_input_callback);
   mac_root_start();
+  
   PROCESS_WAIT_EVENT_UNTIL(ev == loramac_network_joined);
   LOG_INFO("RECEIVE LORAMAC JOINED EVENT !\n");
 

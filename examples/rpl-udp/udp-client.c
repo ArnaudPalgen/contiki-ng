@@ -58,16 +58,17 @@ PROCESS_THREAD(udp_client_process, ev, data)
     LOG_INFO("UDP CLIENT\n");
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
 
-    if(NETSTACK_ROUTING.node_is_reachable() && NETSTACK_ROUTING.get_root_ipaddr(&root_ipaddr)) {
+    if(NETSTACK_ROUTING.node_is_reachable()/*&& NETSTACK_ROUTING.get_root_ipaddr(&root_ipaddr)*/) {
       /* Send to DAG root */
-      uip_ip6addr_u8(&dest_ipaddr, 0, '_','u','m','o','n','s', '_', 'a','r','n','a','u','d',0, 0);
-      LOG_INFO("Sending request %u to ", count);
-      LOG_INFO_6ADDR(&dest_ipaddr);
-      LOG_INFO_("\n");
-      snprintf(str, sizeof(str), "hello %d", count);
-      simple_udp_sendto(&udp_conn, str, strlen(str), &dest_ipaddr);
+      //uip_ip6addr_u8(&dest_ipaddr, 0, '_','u','m','o','n','s', '_', 'a','r','n','a','u','d',0, 0);
+      //LOG_INFO("Sending request %u to ", count);
+      //LOG_INFO_6ADDR(&dest_ipaddr);
+      //LOG_INFO_("\n");
+      //snprintf(str, sizeof(str), "hello %d", count);
+      //simple_udp_sendto(&udp_conn, str, strlen(str), &dest_ipaddr);
       //simple_udp_sendto(&udp_conn, str, strlen(str), &root_ipaddr);
-      count++;
+      //count++;
+      LOG_INFO("RPL NETWORK JOINED");
     } else {
       LOG_INFO("Not reachable yet\n");
     }

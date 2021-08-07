@@ -23,7 +23,7 @@ lora_addr_t loramac_addr;
 //MAC state
 static state_t state;
 
-static void (* upper_layer)(lora_addr_t *src, lora_addr_t *dest, void* data) = NULL;
+static void (* upper_layer)(lora_addr_t *src, lora_addr_t *dest, char* data) = NULL;
 
 //timers
 static struct ctimer retransmit_timer;
@@ -391,7 +391,7 @@ mac_root_start()
 }
 
 void
-loramac_set_input_callback(void (* listener)(lora_addr_t *src, lora_addr_t *dest, void* data))//current
+loramac_set_input_callback(void (* listener)(lora_addr_t *src, lora_addr_t *dest, char* data))//current
 {
     upper_layer = listener;
 }

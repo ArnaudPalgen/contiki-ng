@@ -33,3 +33,6 @@ mac_root_start();
 
 int
 mac_send_packet(lora_addr_t src_addr, bool need_ack, void* data);
+
+void
+loramac_set_input_callback(void (* listener)(lora_addr_t *src, lora_addr_t *dest, char* data));

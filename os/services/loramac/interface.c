@@ -4,6 +4,8 @@
 #include "sys/log.h"
 #include "dev/button-hal.h"
 #include "net/routing/routing.h"
+#include <stdlib.h>
+
 /*---------------------------------------------------------------------------*/
 #define LOG_MODULE "Interface"
 #define LOG_LEVEL LOG_LEVEL_DBG
@@ -93,6 +95,7 @@ static void
 loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)//current
 {//data from loramac -> ipv6
 
+  LOG_INFO("Receive data FROM loramac whouhouuuuuu\n");
     uip_ip6addr_t ip_src, ip_dest;
     uint16_t i = 0;
     char current_byte[2];
@@ -102,20 +105,22 @@ loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)//current
 
     while(i<UIP_BUFSIZE && *data !=0){
         if(i==8){//we have to write to ipv6 addresses
-            memcpy(&(uip_buf.u8[i]), &(ip_src.u8), 16);
+            memcpy(&(uip_buf[i]), &(ip_src.u8), 16);
             i+=16;
-            memcpy(&(uip_buf.u8[i]), &(ip_dest.u8), 16);
+            memcpy(&(uip_buf[i]), &(ip_dest.u8), 16);
             i+=16;
             continue;
         }
         memcpy(current_byte, data, 2);
         data+=2;
-        uip_buf.u8[i]= (uint8_t) strtol(current_byte, NULL, 16);
+        uip_buf[i]= (uint8_t) strtol(current_byte, NULL, 16);
         i+=1;
     }
     if(i < 8){//The IPv6 header is not complete
+        LOG_WARN("IPV6 header not complete\n");
         uipbuf_clear();
     }else{//deliver the packet to the tcp/ip stack
+        LOG_INFO("Deliver data to the TCP/IP stack\n");
         tcpip_input();
     }
 }
@@ -136,7 +141,7 @@ PROCESS_THREAD(loramac_process, ev, data)//current
   PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
   LOG_INFO("Button pushed\n");
   
-  //loramac_set_input_callback(loramac_input_callback);
+  loramac_set_input_callback(loramac_input_callback);
   mac_root_start();
   
   PROCESS_WAIT_EVENT_UNTIL(ev == loramac_network_joined);

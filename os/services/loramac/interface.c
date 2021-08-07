@@ -90,13 +90,38 @@ output(void)//done
   return 0;
 }
 /*---------------------------------------------------------------------------*/
-/*
+
 static void
-loramac_input_callback(lora_addr_t src, lora_addr_t dest, void* data)
+loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)#current
 {//data from loramac -> ipv6
 
+    uip_ip6addr_t ip_src, ip_dest;
+    uint16_t i = 0;
+    char current_byte[2];
+
+    lora2ipv6(src, &ip_src);
+    lora2ipv6(dest, &ip_dest);
+
+    while(i<UIP_BUFSIZE && *data !=0){
+        if(i==8){//we have to write to ipv6 addresses
+            memcpy(&(uip_buf.u8[i]), &(ip_src.u8), 16);
+            i+=16;
+            memcpy(&(uip_buf.u8[i]), &(ip_dest.u8), 16);
+            i+=16;
+            continue;
+        }
+        memcpy(current_byte, data, 2);
+        data+=2;
+        uip_buf.u8[i]= (uint8_t) strtol(current_byte, NULL, 16);
+        i+=1;
+    }
+    if(i < 8){//The IPv6 header is not complete
+        uipbuf_clear();
+    }else{//deliver the packet to the tcp/ip stack
+        tcpip_input();
+    }
 }
-*/
+
 /*---------------------------------------------------------------------------*/
 const struct uip_fallback_interface loramac_interface = {
     init, output

@@ -7,46 +7,52 @@
 #include "net/linkaddr.h"
 #include "sys/log.h"
 #include "sys/mutex.h"
-//#include "rn2483radio.h"
+#include "random.h"
 
 /*---------------------------------------------------------------------------*/
-/* Log configuration */
 
+/* Log configuration */
 #define LOG_MODULE "LoRa MAC"
 #define LOG_LEVEL LOG_LEVEL_DBG
 #define LOG_CONF_WITH_COLOR 3
 
-//LoRa addr
-static const lora_addr_t root_addr={ROOT_PREFIX, ROOT_ID};
-lora_addr_t loramac_addr;
+/*LoRaMAC addresses*/
+static const lora_addr_t root_addr={ROOT_PREFIX, ROOT_ID}; // The ROOT address
+lora_addr_t loramac_addr; // The node address
 
-//MAC state
+/*The current LoRaMAC state */
 static state_t state;
 
+/*The callback function for the upper layer*/
 static void (* upper_layer)(lora_addr_t *src, lora_addr_t *dest, char* data) = NULL;
 
-//timers
+/*Retransmit and query timer*/
 static struct ctimer retransmit_timer;
 static struct ctimer query_timer;
 
-//buffers
+/*Buffer related variables*/
 static lora_frame_t buffer[BUF_SIZE];
-static uint8_t w_i = 0;// index to write in the buffer
-static uint8_t r_i = 0;// index to read in the buffer 
+static uint8_t w_i = 0; // index to write in the buffer
+static uint8_t r_i = 0; // index to read in the buffer 
 static uint8_t buf_len = 0;// current size of the buffer
-mutex_t tx_buf_mutex;// mutex for tx_buffer
+mutex_t tx_buf_mutex; // mutex for tx_buffer
 
+/*The last sent frame*/
 static lora_frame_t last_send_frame;
+
+/*Counters*/
 static uint8_t expected_seq = 0;
 static uint8_t next_seq = 0;
 static uint8_t retransmit_attempt=0;
 
+/*Events*/
 static process_event_t new_tx_frame_event;//event that signals to the TX process that a new frame is available to be sent 
-static process_event_t state_change_event;//event that signals to the TX process that ..TODO
-process_event_t loramac_network_joined;
+static process_event_t state_change_event;//event that signals to the TX process that the state has changed
+static process_event_t loramac_network_joined;//event that signal that the node has joined the LoRaMAC network
 
 PROCESS(mac_tx, "LoRa-MAC tx process");
 
+/*---------------------------------------------------------------------------*/
 /* Functions that check dest of a lora_addr */
 bool forDag(lora_addr_t *dest_addr){
     // if frame is for this RPL root or for RPL child of this root
@@ -73,7 +79,7 @@ setState(state_t new_state)
 }
 
 /**
- * disable the watchdog timer and send the
+ * Disable the watchdog timer and send the
  * loraframe to the PHY layer
  */
 void
@@ -83,8 +89,9 @@ send_to_phy(lora_frame_t frame)
     phy_tx(frame);
 }
 
+/*---------------------------------------------------------------------------*/
 /**
- * enqueue a loraframe in the tx_buffer if it's not full
+ * Enqueue a loraframe in the tx_buffer if it's not full
  * and signal to process that a packet has been enqueued
  * 
  * Return: 1 if the buffer is full, 0 otherwise
@@ -95,34 +102,29 @@ enqueue_packet(lora_frame_t frame)
 {
     LOG_DBG("Enter enqueue_packet with frame: ");
     LOG_DBG_LR_FRAME(&frame);
-    LOG_INFO("YOOOOOO 1\n");
     
-    //acquire mutex for buffer
+    /*acquire mutex for buffer*/
     while(!mutex_try_lock(&tx_buf_mutex)){}
-    LOG_INFO("YOOOOOO 2\n");
 
     if(buf_len <= BUF_SIZE){
         LOG_DBG("append to buffer\n");
         buffer[w_i] = frame;
         buf_len++;
         w_i = (w_i+1)%BUF_SIZE;
-        LOG_INFO("YOOOOOO 3\n");
         mutex_unlock(&tx_buf_mutex);
         LOG_DBG("post new_tx_frame_event to TX_PROCESS\n");
         
-        // signal to process that a packet has been enqueued
-        LOG_INFO("YOOOOOO 4\n");
+        /*signal to process that a packet has been enqueued*/
         process_post(&mac_tx, new_tx_frame_event, NULL);
         return 0;
     }else{
         LOG_INFO("TX buffer full\n");
         mutex_unlock(&tx_buf_mutex);
-        LOG_INFO("YOOOOOO 5\n");
         return 1;
     }
 }
-
-
+/*---------------------------------------------------------------------------*/
+/*Send an ack to the ack_dest_addr with the sequence number ack_seq*/
 void
 send_ack(lora_addr_t ack_dest_addr, uint8_t ack_seq)
 {
@@ -139,47 +141,57 @@ send_ack(lora_addr_t ack_dest_addr, uint8_t ack_seq)
     LOG_DBG("send ack %d to ", ack_frame.seq);
     LOG_DBG_LR_ADDR(&(ack_frame.dest_addr));
     LOG_DBG("\n");
-    //send_to_phy(ack_frame);
-    //last_send_frame = ack_frame;
     enqueue_packet(ack_frame);
 }
 
 /*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /* Timeout callback functions */
+
+/*Retransmit the last sended frame*/
 void
 retransmit_timeout(void *ptr)
 {
-    LOG_INFO("retransmit timeout !\n");
-    LOG_ERR("STOP retransmit timer thanks to retransmit_timeout\n");
+    LOG_INFO("Retransmit timeout\n");
+    LOG_DBG("STOP retransmit timer thanks to retransmit_timeout\n");
     ctimer_stop(&retransmit_timer);
     if(retransmit_attempt < MAX_RETRANSMIT){
-        LOG_DBG("retransmit frame: ");
+        LOG_INFO("retransmit frame: ");
         LOG_DBG_LR_FRAME(&last_send_frame);
+        
         send_to_phy(last_send_frame);
         retransmit_attempt ++;
-        LOG_ERR("RESTART retransmit timer because a frame was retransmit\n");
+        
+        LOG_DBG("RESTART retransmit timer because a frame was retransmit\n");
+        
         phy_timeout(RX_TIME);
         phy_rx();
         ctimer_restart(&retransmit_timer);
     }else{
         LOG_INFO("Unable to send frame ");
         LOG_INFO_LR_FRAME(&last_send_frame);
+        LOG_INFO("\n");
+        
         retransmit_attempt = 0;
-        if(last_send_frame.command==QUERY){
-            LOG_DBG("START query_timer because last send frame is a QUERY\n");
-            ctimer_restart(&query_timer);
+        if (last_send_frame.command == JOIN){
+            /*Unable to JOIN a LoRaMAC network -> Increase the retransmit timer time with some jitter*/
+            etimer_set(&retransmit_timer, (RETRANSMIT_TIMEOUT+(random_rand % RETRANSMIT_TIMEOUT))%(60*CLOCK_SECOND));
+            /*Feature: Put the RN2483 and the zolertia platform in sleep mode and if possible*/
+        }else{
+            if(last_send_frame.command == QUERY){
+                LOG_DBG("START query_timer because last send frame is a QUERY\n");
+                ctimer_restart(&query_timer);
+            }
+            setState(READY);
         }
-        setState(READY);
     }
 }
-
-/**
- * stop query timer and enqueue a query frame
- */
+/*---------------------------------------------------------------------------*/
+/*Send a query to ask downward traffic*/
 void
 query_timeout(void *ptr)
 {
-    LOG_INFO("Query timeout !\n");
+    LOG_INFO("Query timeout\n");
     LOG_DBG("STOP query timer thanks to query_timeout\n");
     ctimer_stop(&query_timer);
     lora_frame_t query_frame;
@@ -195,11 +207,20 @@ query_timeout(void *ptr)
 }
 
 /*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /* Packet processing functions */
+
 void
 on_join_response(lora_frame_t* frame)
 {
     LOG_DBG("JOIN RESPONSE\n");
+
+    /*chech that:
+     *  - the state is the initial state (ALONE)
+     *  - the frame is for this node
+     *  - the payload lenght is 2 because the prefix size is one byte
+     *  - the sequence number is 0 because it must be the first received frame
+     */
     if(state == ALONE && forRoot(&(frame->dest_addr)) && strlen(frame->payload) == 2 && frame->seq == 0){
         loramac_addr.prefix = (uint8_t) strtol(frame->payload, NULL, 16);
         LOG_DBG("state = READY\n");
@@ -207,10 +228,10 @@ on_join_response(lora_frame_t* frame)
         LOG_DBG("STOP retransmit timer\n");
         ctimer_stop(&retransmit_timer);
         
-        LOG_INFO("Lora Root joined\n");
+        LOG_INFO("LoRa root joined\n");
         LOG_INFO("Node addr: ");
         LOG_INFO_LR_ADDR(&loramac_addr);
-        printf("\n");
+        LOG_INFO("\n");
 
         
         LOG_DBG("START TX_PROCESS\n");
@@ -218,7 +239,7 @@ on_join_response(lora_frame_t* frame)
         LOG_DBG("SET query timer\n");
         ctimer_set(&query_timer, QUERY_TIMEOUT, query_timeout, NULL);
         expected_seq ++;
-        process_post(PROCESS_BROADCAST, loramac_network_joined, NULL);
+        process_post(PROCESS_BROADCAST, loramac_network_joined, NULL);//signal to all process that the LoRaMAC network is joined
     }else{
         LOG_WARN("Incorrect JOIN_RESPONSE\n");
     }
@@ -227,14 +248,14 @@ on_join_response(lora_frame_t* frame)
 void
 on_data(lora_frame_t* frame)
 {
-    LOG_INFO("ON_DATA!\n");
+    LOG_DBG("ON_DATA\n");
 
     LOG_DBG("STOP retransmit and query timeout\n");
     ctimer_stop(&retransmit_timer);
     ctimer_stop(&query_timer);
 
-    if(frame->seq < expected_seq){
-        //the root has not received the last ack -> retransmit
+    if(frame->seq < expected_seq){//todo check that is correct
+        /*The node has not received the last ack -> retransmit*/
         LOG_WARN("sequence number smaller than expected\n");
         if(frame->k){
             send_ack(frame->src_addr, frame->seq);

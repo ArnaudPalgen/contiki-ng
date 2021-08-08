@@ -18,9 +18,9 @@
 static uart_frame_t tx_buffer [TX_BUF_SIZE];
 static uint8_t w_i = 0;// index to write in the buffer
 static uint8_t r_i = 0;// index to read in the buffer 
-static uint8_t tx_buf_size = 0;// current size of the buffer
+static uint8_t tx_buf_size = 0;// size of the buffer
 
-//Function to send data to. Data from ratio_rx
+//Function to send data to. i.e. data from ratio_rx
 static int (* handler)( lora_frame_t frame) = NULL;
 
 //Array that contains the expected responses for a sent UART command
@@ -46,6 +46,7 @@ PROCESS(ph_tx, "LoRa-PHY tx process");
 
 
 /*---------------------------------------------------------------------------*/
+/*print functions*/
 
 void print_uart_frame(uart_frame_t *frame){
     printf("{ cmd:%s ", uart_command[frame->cmd]);
@@ -71,7 +72,8 @@ void print_lora_frame(lora_frame_t *frame){
         frame->next, frame->command, frame->payload);
 }
 
-/*build lora_frame_t from char**/
+/*---------------------------------------------------------------------------*/
+/* build lora_frame_t from char* */
 int parse(lora_frame_t *dest, char *data){
 
     if(strlen(data) < HEADER_SIZE){
@@ -147,6 +149,7 @@ int parse(lora_frame_t *dest, char *data){
     return 0;
 }
 
+/*---------------------------------------------------------------------------*/
 /*convert lora_frame_t to hex*/
 int to_frame(lora_frame_t *frame, char *dest){
     LOG_DBG("to frame receive: ");
@@ -192,12 +195,12 @@ int to_frame(lora_frame_t *frame, char *dest){
     strcat(result, flags_command);
     strcat(result, sn);
     
-    /* create payload *///todo
+    /* create payload */
     int payload_size = 0;
     if(frame->payload != NULL){
         payload_size = strlen(frame->payload);
     } 
-    //int size = HEADER_SIZE+payload_size+9;//todo + 9 why ?
+    
     if(payload_size>0){
         if(payload_size%2 != 0){
             strcat(result, "0");
@@ -211,6 +214,8 @@ int to_frame(lora_frame_t *frame, char *dest){
     return 0;
 }
 
+/*---------------------------------------------------------------------------*/
+/*write a char* to the UART connection*/
 void write_uart(char *s){
     LOG_INFO("PHY TX:%s\n", s);
     while(*s != 0){
@@ -221,13 +226,13 @@ void write_uart(char *s){
     LOG_DBG("phy tx done\n");
 }
 
+/*---------------------------------------------------------------------------*/
 void phy_register_listener(int (* listener)(lora_frame_t frame)){
     handler = listener;
 }
 
-
 /*---------------------------------------------------------------------------*/
-
+/*Process an incomming UART command*/
 void process_command(unsigned char *command){
     LOG_DBG("UART response:%s\n", command);
 
@@ -253,9 +258,8 @@ void process_command(unsigned char *command){
 
 }
 
-/**
- * Callback function that receive bytes from UART
- **/
+/*---------------------------------------------------------------------------*/
+/* Callback function that receive bytes from UART*/
 int uart_rx(unsigned char c){
     static unsigned char buf [FRAME_SIZE];
     static unsigned short index = 0;
@@ -277,20 +281,14 @@ int uart_rx(unsigned char c){
     return 0;
 }
 
-int uart_tx(uart_frame_t uart_frame){
+/*---------------------------------------------------------------------------*/
+/*Append an UART frame to the TX buffer.*/
+void uart_tx(uart_frame_t uart_frame){
     LOG_DBG("enter UART_TX\n");
-    if (uart_frame.type == LORA){
-        LOG_DBG("with lora frame: ");
-        lora_frame_t f = uart_frame.data.lora_frame;
-        LOG_DBG_LR_FRAME(&f);
-    }
+
     while(!mutex_try_lock(&tx_buf_mutex)){}
     if(tx_buf_size < TX_BUF_SIZE){
         tx_buffer[w_i] = uart_frame;
-        LOG_DBG("added frame uart frame that contains:\n");
-        lora_frame_t f42;
-        f42 = tx_buffer[w_i].data.lora_frame;
-        LOG_DBG_LR_FRAME(&f42);
         tx_buf_size ++;
         w_i = (w_i+1)%TX_BUF_SIZE;
         LOG_DBG("append ");
@@ -299,9 +297,8 @@ int uart_tx(uart_frame_t uart_frame){
     }
     mutex_unlock(&tx_buf_mutex);
     process_post(&ph_tx, new_tx_frame_event, NULL);
-    return 0;//TODO
 }
-
+/*---------------------------------------------------------------------------*/
 void phy_init(){
     //add config command to tx_buf
     //send event to process
@@ -317,13 +314,14 @@ void phy_init(){
 
     //send initialisation UART commands
     uart_frame_t mac_pause = {MAC_PAUSE, STR, {.s=""}, {UART_U_INT, UART_NONE}};
-    uart_frame_t set_freq = {SET_FREQ, STR, {.s="868100000"}, {UART_OK, UART_NONE}};
+    uart_frame_t set_freq = {SET_FREQ, STR, {.s=FREQ}, {UART_OK, UART_NONE}};
 
     uart_tx(mac_pause);
     uart_tx(set_freq);
 
 }
 
+/*---------------------------------------------------------------------------*/
 int phy_tx(lora_frame_t frame){
     uart_frame_t uart_frame = {
         TX,
@@ -378,7 +376,13 @@ int phy_rx(){
 }
 
 /*---------------------------------------------------------------------------*/
-// process
+/*
+ * RX process.
+ * A process_thread is used to avoid interruption. When a UART frame is received and decoded,
+ * if it is the expected reponse, process_command(unsigned char *command) send an event to
+ * the TX process to send the next UART frame.
+ *
+*/
 PROCESS_THREAD(ph_rx, ev, data){
     PROCESS_BEGIN();
     
@@ -389,6 +393,8 @@ PROCESS_THREAD(ph_rx, ev, data){
     PROCESS_END();
 }
 
+/*---------------------------------------------------------------------------*/
+/*Return true if the TX buffer is empty. false otherwise.*/
 bool buf_empty(){
     bool result;
     while(!mutex_try_lock(&tx_buf_mutex)){}
@@ -397,17 +403,19 @@ bool buf_empty(){
     return result;
 }
 
+/*---------------------------------------------------------------------------*/
+/*The TX process that sends frames in the TX buffer to the UART connection.*/
 PROCESS_THREAD(ph_tx, ev, data){
     
-    uart_frame_t uart_frame;
-    bool buf_empty_var;
+    uart_frame_t uart_frame; // The UART frame to send
+    bool buf_empty_var; // true if the buffer is empty, false otherwise.
     
     PROCESS_BEGIN();
 
-    //main process
     while (true){
         buf_empty_var = buf_empty();
         if(buf_empty_var){
+            // The buffer is empty. Wait an incomming frame.
             PROCESS_WAIT_EVENT_UNTIL(ev==new_tx_frame_event);
         }
         
@@ -435,33 +443,30 @@ PROCESS_THREAD(ph_tx, ev, data){
 
         can_send = false;
         
+        /* Serialize the uart_frame to a char array that will be sent. */
         char result[FRAME_SIZE]="";
-        if(uart_frame.type == STR){
+        if(uart_frame.type == STR){ // The uart_frame contains a String
             sprintf(result, "%s%s", uart_command[uart_frame.cmd], uart_frame.data.s);
-        }else if(uart_frame.type == LORA){            
-            strcat(result, uart_command[uart_frame.cmd]);
 
+        }else if(uart_frame.type == LORA){ // The uart_frame contains a lora_frame    
+            
+            strcat(result, uart_command[uart_frame.cmd]);
             lora_frame_t frame = uart_frame.data.lora_frame;
-            LOG_DBG("COMPARE ");
-            LOG_DBG_LR_FRAME(&frame);
-            LOG_DBG("WITH ");
-            lora_frame_t ff;
-            ff = uart_frame.data.lora_frame;
-            LOG_DBG_LR_FRAME(&ff);
             to_frame(&frame, result+strlen(result));
             
-        }else if(uart_frame.type == INT){         
+        }else if(uart_frame.type == INT){ // The uart_frame contains an integer 
             sprintf(result, "%s%d", uart_command[uart_frame.cmd], uart_frame.data.d);
         }
-        LOG_DBG("will call write UART\n");
-        write_uart(result);
-        LOG_DBG("write uart call ended\n");
+
+
+        write_uart(result);// write the serialized uart_frame to UART 
+        
+        /* Wait until can send the next item in the buffer. i.e. the expected reponse has be received. */
         while(!can_send){
             PROCESS_WAIT_EVENT();
             LOG_DBG("wait can send\n");
             if(ev == can_send_event){
                 can_send = true;
-                
             }
         }
         LOG_DBG("can send !\n");

@@ -9,4 +9,10 @@
 #define UART UART_PORT
 #endif
 
+#ifndef LORA_FREQ
+#define FREQ "868100000"
+#else
+#define FREQ LORA_FREQ
+#endif
+
 #endif

@@ -7,10 +7,11 @@
 #include <stdlib.h>
 
 /*---------------------------------------------------------------------------*/
+/*logging configuration*/
 #define LOG_MODULE "Interface"
 #define LOG_LEVEL LOG_LEVEL_DBG
 #define LOG_CONF_WITH_COLOR 3
-
+/*---------------------------------------------------------------------------*/
 PROCESS(loramac_process, "LoRaMAC-interface");
 /*---------------------------------------------------------------------------*/
 /*
@@ -28,13 +29,13 @@ Where:
   - NODE_ID is the node-id of the node
 */
 
-void lora2ipv6(lora_addr_t *src_addr, uip_ip6addr_t *dest_addr)//current
+void lora2ipv6(lora_addr_t *src_addr, uip_ip6addr_t *dest_addr)
 {
   uip_ip6addr_u8(dest_addr, 0xFD, 0, 0, 0, 0, 0, 0, src_addr->prefix, 0x02, 0x12, 0x4B, 0x00, 0x06, 0x0D, src_addr->id>>8, src_addr->id);
   
 }
 
-void ipv62lora(uip_ip6addr_t *src_addr, lora_addr_t *dest_addr)//done
+void ipv62lora(uip_ip6addr_t *src_addr, lora_addr_t *dest_addr)
 {
   LOG_INFO("CONVERT SRC ADDR:");
   LOG_INFO_6ADDR(src_addr);
@@ -43,11 +44,11 @@ void ipv62lora(uip_ip6addr_t *src_addr, lora_addr_t *dest_addr)//done
 }
 
 /*---------------------------------------------------------------------------*/
+/*Start the LoRaMAC interface*/
 static void
 init(void)
 {
   LOG_INFO("Welcome to LoRaMAC interface !\n");
-  //mac_init();
   #ifdef IS_ROOT
     LOG_INFO("Init LoRaMAC Interface\n");
     
@@ -64,7 +65,7 @@ init(void)
  * payload to which we add 32 bytes of the src/dest IP addresses that are not used.
  */
 static int
-output(void)//done
+output(void)
 { 
 
   LOG_INFO("Receive data for loramac whouhouuuuuu\n");
@@ -82,6 +83,7 @@ output(void)//done
     data_index+=2;
     uip_index++;
   }
+
   lora_addr_t src_addr;
   ipv62lora(&(UIP_IP_BUF->srcipaddr), &src_addr);
   mac_send_packet(src_addr, true, &data);
@@ -89,13 +91,15 @@ output(void)//done
   
   return 0;
 }
+
 /*---------------------------------------------------------------------------*/
 
+/*Convert and deliver data from the MAC layer to the TCP/IP stack*/
 static void
-loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)//current
-{//data from loramac -> ipv6
+loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)
+{
 
-  LOG_INFO("Receive data FROM loramac whouhouuuuuu\n");
+  LOG_INFO("Receive data from LoRaMAC\n");
     uip_ip6addr_t ip_src, ip_dest;
     uint16_t i = 0;
     char current_byte[2];
@@ -103,11 +107,11 @@ loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)//current
     lora2ipv6(src, &ip_src);
     lora2ipv6(dest, &ip_dest);
 
-    LOG_INFO("decode src and dest IPv6 addr:\n");
-    LOG_INFO_6ADDR(&ip_src);
-    LOG_INFO("\n");
-    LOG_INFO_6ADDR(&ip_dest);
-    LOG_INFO("\n");
+    LOG_DBG("decode src and dest IPv6 addr:\n");
+    LOG_DBG_6ADDR(&ip_src);
+    LOG_DBG("\n");
+    LOG_DBG_6ADDR(&ip_dest);
+    LOG_DBG("\n");
 
     uint8_t ccurrent_int;
 
@@ -122,7 +126,6 @@ loramac_input_callback(lora_addr_t *src, lora_addr_t *dest, char* data)//current
         memcpy(current_byte, data, 2);
         data+=2;
         ccurrent_int = (uint8_t) strtol(current_byte, NULL, 16);
-        LOG_INFO("WRITE %d to UIP_BUF\n", ccurrent_int);
         uip_buf[i]=ccurrent_int;
         i+=1;
     }
@@ -141,14 +144,16 @@ const struct uip_fallback_interface loramac_interface = {
     init, output
 };
 /*---------------------------------------------------------------------------*/
-
-PROCESS_THREAD(loramac_process, ev, data)//current
+/* The main process */
+PROCESS_THREAD(loramac_process, ev, data)
 {
   PROCESS_BEGIN();
   
-  LOG_INFO("Welcome !\n");
+  /* Turn off the radio until the node has joined a LoRaMAC network */
   NETSTACK_MAC.off();
   
+  /*todo remove*/
+  /*to make development easier*/
   PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
   LOG_INFO("Button pushed\n");
   
@@ -156,8 +161,9 @@ PROCESS_THREAD(loramac_process, ev, data)//current
   mac_root_start();
   
   PROCESS_WAIT_EVENT_UNTIL(ev == loramac_network_joined);
-  LOG_INFO("RECEIVE LORAMAC JOINED EVENT !\n");
+  LOG_INFO("RECEIVE LORAMAC JOINED EVENT\n");
 
+  /*Start the RPL root*/
   LOG_INFO("PREFIX: %d\n", loramac_addr.prefix);
   uip_ipaddr_t prefix;
   uip_ip6addr_u8(&prefix, 0xFD, 0, 0, 0, 0, 0, 0, loramac_addr.prefix, 0,0,0,0,0,0,0,0);

@@ -114,7 +114,7 @@ int phy_tx(lora_frame_t frame);
 /* Set the watchdog timer of the RN2483 */
 int phy_timeout(int timeout);
 
-/* Put de RN2483 in sleep mode */
+/* Put de RN2483 in sleep mode (in ms) */
 int phy_sleep(int duration);
 
 /* Put de RN2483 in receive mode */

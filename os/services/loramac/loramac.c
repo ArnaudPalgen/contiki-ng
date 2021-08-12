@@ -253,10 +253,6 @@ on_data(lora_frame_t* frame)
 {
     LOG_DBG("ON_DATA\n");
 
-    LOG_DBG("STOP retransmit and query timeout\n");
-    ctimer_stop(&retransmit_timer);
-    ctimer_stop(&query_timer);
-
     if(frame->seq < expected_seq){
         //fixme don't have ack now
         //todo remove this if
@@ -266,6 +262,9 @@ on_data(lora_frame_t* frame)
         //    send_ack(frame->src_addr, frame->seq);
         //}
     }else{
+        LOG_DBG("STOP retransmit and query timeout\n");
+        ctimer_stop(&retransmit_timer);
+        ctimer_stop(&query_timer);
         if(frame->seq > expected_seq){
             // lost (frame->seq - expected_seq) packets
             LOG_WARN("lost %d frames\n", (frame->seq - expected_seq));
@@ -325,10 +324,12 @@ on_ack(lora_frame_t* frame)
         
         //fixme this operation are done by on_data
         //because they can only be performed when the last frame has been received
-        /*if(last_send_frame.command==QUERY){
+
+        //review
+        if(last_send_frame.command==QUERY){
             ctimer_restart(&query_timer);
-        }*/
-        //setState(READY);
+        }
+        setState(READY);
     }
 }
 

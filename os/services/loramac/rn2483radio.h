@@ -54,13 +54,17 @@ typedef enum uart_frame_type{
 
 /*The UART commands for the RN2483*/
 typedef enum uart_command{
-    MAC_PAUSE,// pause mac layer
-    SET_MOD,//set radio mode (fsk or lora)
-    SET_FREQ,//set radio freq from 433050000 to 434790000 or from 863000000 to 870000000, in Hz.
-    SET_WDT,//set watchdog timer
-    RX,//receive mode
-    TX,//transmit data
-    SLEEP//system sleep
+    MAC_PAUSE, // pause mac layer
+    SET_MOD, // set radio mode
+    SET_FREQ, // set radio freq
+    SET_WDT, // set watchdog timer
+    RX, // receive mode
+    TX, // transmit data
+    SLEEP, // system sleep
+    SET_BW, // set the radio bandwidth
+    SET_CR, // set the radio coding rate
+    SET_PWR, // set the radio output power
+    SET_SF // set the radio spreading factor
 }uart_command_t;
 
 /*---------------------------------------------------------------------------*/

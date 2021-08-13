@@ -30,7 +30,7 @@ const char* uart_response[8]={"ok", "invalid_param", "radio_err", "radio_rx", "b
 
 //commands that can be sent
 //see uart_command_t
-const char* uart_command[7]={"mac pause", "radio set mod ", "radio set freq ", "radio set wdt ", "radio rx ", "radio tx ", "sys sleep "};
+const char* uart_command[11]={"mac pause", "radio set mod ", "radio set freq ", "radio set wdt ", "radio rx ", "radio tx ", "sys sleep ", "radio set bw ", "radio set cr ", "radio set pwr ", "radio set sf "};
 
 
 mutex_t response_mutex;//mutex for expected_response
@@ -248,7 +248,7 @@ void process_command(unsigned char *command){
                 LOG_INFO("PHY RX:%s\n", (char*)(command+10));
                 handler(frame);
             }
-            /* signal to the tx process that the next frame can be sent*/
+            /* signal to the tx process that the next frame can be sent */
             LOG_DBG(" expected !\n");
             process_post(&ph_tx, can_send_event, NULL);
             break;
@@ -313,11 +313,23 @@ void phy_init(){
     process_start(&ph_tx, NULL);
 
     //send initialisation UART commands
+    uart_frame_t set_mode = {SET_MOD, STR, {.s=LORA_RADIO_MODE},{UART_OK, UART_NONE}};
     uart_frame_t mac_pause = {MAC_PAUSE, STR, {.s=""}, {UART_U_INT, UART_NONE}};
-    uart_frame_t set_freq = {SET_FREQ, STR, {.s=FREQ}, {UART_OK, UART_NONE}};
+    uart_frame_t set_freq = {SET_FREQ, STR, {.d=LORA_RADIO_FREQ}, {UART_OK, UART_NONE}};
+    uart_frame_t set_bw = {SET_BW, INT, {.d=LORA_RADIO_BW},{UART_OK, UART_NONE}};
+    uart_frame_t set_cr = {SET_CR, STR, {.s=LORA_RADIO_CR}{UART_OK, UART_NONE}};
+    uart_frame_t set_pwr = {SET_PWR, INT, {.d=LORA_RADIO_PWR}, {UART_OK, UART_NONE}};
+    uart_frame_t set_sf = {SET_SF, STR, {.s=LORA_RADIO_SF},{UART_OK, UART_NONE}};
 
+    uart_tx(set_mode);
     uart_tx(mac_pause);
     uart_tx(set_freq);
+    uart_tx(set_bw);
+    uart_tx(set_cr);
+    uart_tx(set_pwr);
+    uart_tx(set_sf);
+
+    LOG_DBG("Initialization done\n");
 
 }
 
@@ -387,8 +399,8 @@ PROCESS_THREAD(ph_rx, ev, data){
     PROCESS_BEGIN();
     
     //UART configuration
-    uart_init(UART);
-    uart_set_input(UART, &uart_rx);
+    uart_init(RN2483_UART_PORT);
+    uart_set_input(RN2483_UART_PORT, &uart_rx);
     
     PROCESS_END();
 }

@@ -175,7 +175,9 @@ retransmit_timeout(void *ptr)
         retransmit_attempt = 0;
         if (last_send_frame.command == JOIN){
             /*Unable to JOIN a LoRaMAC network -> Increase the retransmit timer time with some jitter*/
-            etimer_set(&retransmit_timer, (RETRANSMIT_TIMEOUT+(random_rand() % RETRANSMIT_TIMEOUT))%(60*CLOCK_SECOND));
+            ctimer_set(&retransmit_timer, 
+                (RETRANSMIT_TIMEOUT+(random_rand() % RETRANSMIT_TIMEOUT))%(60*CLOCK_SECOND),
+                retransmit_timeout, NULL);
             /*Feature: Put the RN2483 and the zolertia platform in sleep mode and if possible*/
         }else{
             if(last_send_frame.command == QUERY){
@@ -470,7 +472,7 @@ PROCESS_THREAD(mac_tx, ev, data){
                 state = WAIT_RESPONSE;
                 
                 LOG_DBG("START retransmit timer in mac_tx process\n");
-                ctimer_restart(&retransmit_timer);
+                ctimer_set(&retransmit_timer, RETRANSMIT_TIMEOUT, retransmit_timeout, NULL);
                 LOG_DBG("Listen during %d s\n", RX_TIME/1000);
                 phy_timeout(RX_TIME);
                 phy_rx();

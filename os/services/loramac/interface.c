@@ -76,6 +76,7 @@ output(void)
   while(uip_index<uip_len){
     if(uip_index==8){
       // skip src and dest ipv6 addr
+      // UIP_IPH_LEN is the ipv6 header size
       uip_index= UIP_IPH_LEN;
     }
 
@@ -85,10 +86,9 @@ output(void)
   }
 
   lora_addr_t src_addr;
-  ipv62lora(&(UIP_IP_BUF->srcipaddr), &src_addr);
+  ipv62lora(&(UIP_IP_BUF->srcipaddr), &src_addr);//convert src address
   mac_send_packet(src_addr, true, &data);
 
-  
   return 0;
 }
 

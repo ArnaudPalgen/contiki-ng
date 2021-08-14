@@ -62,7 +62,7 @@
  * Default: sf2
 */
 #ifndef LORA_RADIO_SF
-#define LORA_RADIO_SF "sf2"
+#define LORA_RADIO_SF "sf12"
 #endif
 /*---------------------------------------------------------------------------*/
 

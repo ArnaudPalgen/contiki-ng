@@ -7,9 +7,10 @@
 #define ROOT_ID 0
 
 /* timeout and rx_time */
-#define QUERY_TIMEOUT (CLOCK_SECOND * 10) //10 sec
-#define RETRANSMIT_TIMEOUT (CLOCK_SECOND * 5) //3 sec
-#define RX_TIME 3000 // 2 sec
+//sys/cloh.h defined CLOCK_SECOND as 32
+#define QUERY_TIMEOUT (CLOCK_SECOND * 60) //tick
+#define RETRANSMIT_TIMEOUT (493) //tick we want an int but the time is 15.400 s so 32*15.4 = 492.8 -> use 493 that is 15.40625 s
+#define RX_TIME 15395 // ms
 
 #define MAX_RETRANSMIT 3
 

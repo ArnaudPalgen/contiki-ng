@@ -8,7 +8,7 @@
 
 /* timeout and rx_time */
 //sys/cloh.h defined CLOCK_SECOND as 32
-#define QUERY_TIMEOUT (CLOCK_SECOND * 60) //tick
+#define QUERY_TIMEOUT (CLOCK_SECOND * 30) //tick
 #define RETRANSMIT_TIMEOUT (493) //tick we want an int but the time is 15.400 s so 32*15.4 = 492.8 -> use 493 that is 15.40625 s
 #define RX_TIME 15395 // ms
 

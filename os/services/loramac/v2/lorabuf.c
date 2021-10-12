@@ -35,7 +35,7 @@ int
 lorabuf_copy_from(const void* from, uint16_t len) //done
 {
     uint16_t l;
-    lorabuf_clear();
+    //lorabuf_clear();
     l = MIN(LORABUF_SIZE, len);
     memcpy(lorabuf, from, l);
     datalen = l;

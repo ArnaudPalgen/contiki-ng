@@ -1,41 +1,14 @@
-#include "contiki.h"
+#include "lorabuf.h"
+#include "framer.h"
 
-#ifndef LORAFRAMER_H_
-#define LORAFRAMER_H_
-
-#endif /* LORAFRAMER_H_ */
-
-/* Parse the received data to a LoRaMAC frame in the lorabuf */
-int parse(void);
-
-/* Create a string of char from the lorabuf */
-int create(void);
-
-////////////////////////////////////////////////////////
 int
-parse(void)
+parse(char *data, int payload_len) //done
 {
     char prefix_c[2];
-    char id_c[4];
-}
-
-
-/* build lora_frame_t from char* */
-int parse(lora_frame_t *dest, char *data){
-
-    if(strlen(data) < HEADER_SIZE){
-        return 1;
-    }
-    
-    lora_frame_t result;
-    
-    char prefix_c[2];
-    char id_c[4];
-    
     uint8_t prefix;
+    
+    char id_c[4];
     uint16_t id;
-    lora_addr_t src_addr;
-    lora_addr_t dest_addr;
 
     /*extract src addr*/
     memcpy(prefix_c, data, 2);
@@ -46,9 +19,8 @@ int parse(lora_frame_t *dest, char *data){
     prefix = (uint8_t) strtol(prefix_c, NULL, 16);
     id = (uint16_t) strtol(id_c, NULL, 16);
 
-    src_addr.prefix = prefix;
-    src_addr.id=id; 
-    result.src_addr = src_addr;
+    lora_addr_t addr = {prefix, id};
+    lorabuf_set_addr(LORABUF_ADDR_SENDER, &addr);
 
     /*extract dest addr*/
     memcpy(prefix_c, data, 2);
@@ -59,9 +31,8 @@ int parse(lora_frame_t *dest, char *data){
     prefix = (uint8_t) strtol(prefix_c, NULL, 16);
     id = (uint16_t) strtol(id_c, NULL, 16);
 
-    dest_addr.prefix = prefix;
-    dest_addr.id = id;
-    result.dest_addr = dest_addr;
+    lora_addr_t addr = {prefix, id};
+    lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &addr);
 
     /*extact flags and command*/
     char cmd[2];
@@ -76,76 +47,84 @@ int parse(lora_frame_t *dest, char *data){
     bool next = (bool)((i_cmd >> 6) & flag_filter);
     
     mac_command_t command = (uint8_t)( i_cmd & command_filter );
-    
-    result.k = k;
-    result.command = command;
-    result.next = next;
+    lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, command);
+    lorabuf_set_attr(LORABUF_ATTR_MAC_NEXT, next);
+    lorabuf_set_attr(LORABUF_ATTR_MAC_CONFIRMED, k);
 
     /* extract SN */
     char sn_c[2];
     memcpy(sn_c, data, 2);
     data = data+2;
     uint8_t sn = (uint8_t)strtol(sn_c, NULL, 16);
-    result.seq = sn;
+    lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, sn);
 
     /*extract payload*/
-    result.payload = data;
-    memcpy(dest, &result, sizeof(lora_frame_t));
+    lorabuf_copy_from(data, payload_len);
     
-    return 0;
 }
-
 /*---------------------------------------------------------------------------*/
-/*convert lora_frame_t to hex*/
-int to_frame(lora_frame_t *frame, char *dest){
-
-    char result[HEADER_SIZE+PAYLOAD_MAX_SIZE]="";
-
-    /*create src and dest addr*/
-    char src_addr[6];
-    char dest_addr[6];
+int
+create(char* dest) //done
+{
+    char addr_c[6];
+    lora_addr_t *addr_p
     
-    sprintf(src_addr, "%02X%04X", frame->src_addr.prefix, frame->src_addr.id);
-    sprintf(dest_addr, "%02X%04X", frame->dest_addr.prefix, frame->dest_addr.id);
-    
+    /* create src addr*/
+    addr_p = lorabuf_get_addr(LORABUF_ADDR_SENDER);
+    sprintf(addr_c, "%02X%04X", addr_p->prefix, addr_p->id);
+    memcpy(dest,addr_c,6);
+    dest=dest+6
+
+    /* create dest addr*/
+    addr_p = lorabuf_get_addr(LORABUF_ADDR_RECEIVER);
+    sprintf(addr_c, "%02X%04X", addr_p->prefix, addr_p->id);
+    memcpy(dest,addr_c,6);
+    dest=dest+6
+
     /*create flags and MAC command*/
     char flags_command[2];
-
+    uint16_t k_flag =  0x80
+    uint16_t next_flag =  0x40
+    
     uint8_t f_c = 0;
-    if(frame->k){
+    lorabuf_attr_t k = lorabuf_get_attr(LORABUF_ATTR_MAC_CONFIRMED)
+    lorabuf_attr_t next = lorabuf_get_attr(LORABUF_ATTR_MAC_NEXT);
+    lorabuf_attr_t command = lorabuf_get_attr(LORABUF_ATTR_MAC_CMD);
+
+    if(k){
         f_c = f_c | K_FLAG;
     }
-    if(frame->next){
+    if(next){
         f_c = f_c | NEXT_FLAG;
     }
-    f_c = f_c | ((uint8_t) frame->command);
+    f_c = f_c | ((uint8_t) command);
 
     sprintf(flags_command, "%02X", f_c);
+    memcpy(dest, flags_command, 2);
+    dest = dest+2;
 
     /* create SN */
     char sn[2];
-    sprintf(sn, "%02X", frame->seq);
-    
-    /* concat all computed values to result */
-    strcat(result, src_addr);
-    strcat(result, dest_addr);
-    strcat(result, flags_command);
-    strcat(result, sn);
-    
+    lorabuf_attr_t seq = lorabuf_get_attr(LORABUF_ATTR_MAC_SEQNO);
+    sprintf(sn, "%02X", seq);
+    memcpy(dest, sn, 2);
+    dest = dest+2;
+
     /* create payload */
-    int payload_size = 0;
-    if(frame->payload != NULL){
-        payload_size = strlen(frame->payload);
-    } 
-    
-    if(payload_size>0){
-        if(payload_size%2 != 0){
-            strcat(result, "0");
+    uint16_t datalen = lorabuf_get_data_len();
+    if (datalen> 0){
+        if datalen(%2 !=0){
+            memcpy(dest, "0", 1);
+            dest = dest+1;
         }
-        strcat(result, frame->payload);
+        
+        char char_byte[2];
+        for(int i=0;i<datalen;i++){
+            sprintf(char_byte,"%02X", lorabuf[i])
+            memcpy(dest, char_byte,2);
+            dest = dest+2;
+        }
     }
-    
-    /*copy result to dest */
-    memcpy(dest, &result, HEADER_SIZE+payload_size+1);
-    return 0;
+
+
 }

@@ -4,21 +4,35 @@
 #include "contiki.h"
 
 //size for data
-#ifdef LORABUF_CONF_SIZE
-#define LORABUF_SIZE LORABUF_CONF_SIZE
-#else
-#define LORABUF_SIZE 1 //TODO
-#endif
+//#ifdef LORABUF_CONF_SIZE
+//#define LORABUF_SIZE LORABUF_CONF_SIZE
+//#else
+//#define LORABUF_SIZE 1
+//#endif
+//
+//#define LORABUF_UART_HDR_LEN 1
+//#define LORABUF_MAC_HDR_LEN 1
+/*---------------------------------------------------------------------------*/
+#define LORA_HDR_BYTE_SIZE 8
+#define LORA_PAYLOAD_BYTE_MAX_SIZE 247
+#define LORA_FRAME_BYTE_MAX_SIZE (LORA_HDR_BYTE_SIZE + LORA_PAYLOAD_BYTE_MAX_SIZE)
 
-#define LORABUF_UART_HDR_LEN 1 //TODO
-#define LORABUF_MAC_HDR_LEN 1 //TODO
+#define LORA_HDR_CHAR_SIZE (2*LORA_HDR_BYTE_SIZE)
+#define LORA_PAYLOAD_CHAR_MAX_SIZE (2*LORA_PAYLOAD_BYTE_MAX_SIZE)
+#define LORA_FRAME_CHAR_MAX_SIZE (LORA_HDR_CHAR_SIZE + LORA_PAYLOAD_CHAR_MAX_SIZE)
+
+#define LORA_UART_CHAR_SIZE 15
+#define LORA_UART_BYTE_SIZE 1 //todo
 
 #define LORABUF_NUM_ATTRS 7
 #define LORABUF_NUM_ADDRS 2
-
+#define LORABUF_NUM_EXP_UART_RESP 2
+/*---------------------------------------------------------------------------*/
 typedef uint16_t lorabuf_attr_t;
 
 void lorabuf_clear(void);
+
+void lorabuf_c_write_char(char c, int pos);
 
 void lorabuf_set_data_len(uint16_t len);
 uint16_t lorabuf_get_data_len(void);
@@ -47,6 +61,7 @@ enum {
 }
 
 #define LORABUF_ADDR_FIRST LORABUF_ADDR_SENDER
+#define LORABUF_UART_RESP_FIRST LORABUF_ATTR_UART_EXP_RESP1
 
 
 #endif

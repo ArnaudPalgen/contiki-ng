@@ -59,7 +59,7 @@ parse(char *data, int payload_len) //done
     lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, sn);
 
     /*extract payload*/
-    lorabuf_copy_from(data, payload_len);
+    lorabuf_copy_from(data, payload_len);//todo to review
     
 }
 /*---------------------------------------------------------------------------*/

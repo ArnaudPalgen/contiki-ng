@@ -1,8 +1,10 @@
 #include "lorabuf.h"
 #include "framer.h"
+#include "loraaddr.h"
+#include "loramac.h"
 
 int
-parse(char *data, int payload_len) //done
+parse(char *data, int payload_len)
 {
     char prefix_c[2];
     uint8_t prefix;
@@ -59,43 +61,42 @@ parse(char *data, int payload_len) //done
     lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, sn);
 
     /*extract payload*/
-    lorabuf_copy_from(data, payload_len);//todo to review
-    
+    lorabuf_copy_from(data, payload_len);//review
 }
 /*---------------------------------------------------------------------------*/
 int
-create(char* dest) //done
+create(char* dest)
 {
     char addr_c[6];
-    lora_addr_t *addr_p
+    lora_addr_t *addr_p;
     
     /* create src addr*/
     addr_p = lorabuf_get_addr(LORABUF_ADDR_SENDER);
     sprintf(addr_c, "%02X%04X", addr_p->prefix, addr_p->id);
     memcpy(dest,addr_c,6);
-    dest=dest+6
+    dest=dest+6;
 
     /* create dest addr*/
     addr_p = lorabuf_get_addr(LORABUF_ADDR_RECEIVER);
     sprintf(addr_c, "%02X%04X", addr_p->prefix, addr_p->id);
     memcpy(dest,addr_c,6);
-    dest=dest+6
+    dest=dest+6;
 
     /*create flags and MAC command*/
     char flags_command[2];
-    uint16_t k_flag =  0x80
-    uint16_t next_flag =  0x40
+    uint16_t k_flag =  0x80;
+    uint16_t next_flag =  0x40;
     
     uint8_t f_c = 0;
-    lorabuf_attr_t k = lorabuf_get_attr(LORABUF_ATTR_MAC_CONFIRMED)
+    lorabuf_attr_t k = lorabuf_get_attr(LORABUF_ATTR_MAC_CONFIRMED);
     lorabuf_attr_t next = lorabuf_get_attr(LORABUF_ATTR_MAC_NEXT);
     lorabuf_attr_t command = lorabuf_get_attr(LORABUF_ATTR_MAC_CMD);
 
     if(k){
-        f_c = f_c | K_FLAG;
+        f_c = f_c | k_flag;
     }
     if(next){
-        f_c = f_c | NEXT_FLAG;
+        f_c = f_c | next_flag;
     }
     f_c = f_c | ((uint8_t) command);
 
@@ -113,18 +114,18 @@ create(char* dest) //done
     /* create payload */
     uint16_t datalen = lorabuf_get_data_len();
     if (datalen> 0){
-        if datalen(%2 !=0){
+        if (datalen%2 !=0){
             memcpy(dest, "0", 1);
             dest = dest+1;
         }
         
         char char_byte[2];
+        uint8_t* lorabuf = lorabuf_get_buf();
         for(int i=0;i<datalen;i++){
-            sprintf(char_byte,"%02X", lorabuf[i])
+            sprintf(char_byte,"%02X", lorabuf[i]);
             memcpy(dest, char_byte,2);
             dest = dest+2;
         }
     }
-
 
 }

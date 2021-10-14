@@ -4,29 +4,27 @@
 #include "sys/log.h"
 #include "sys/rtimer.h"
 #include <stdlib.h>
-
-const char* loraphy_params_values[7]={"bw", "cr", "freq", "mod", "pwr", "sf", "wdt"};
+/*---------------------------------------------------------------------------*/
+const char* loraphy_params_values[8]={"bw", "cr", "freq", "mod", "pwr", "sf", "wdt", ""};
 const char* loraphy_commands_values[5]={"mac pause", "radio set", "radio rx", "radio tx", "sys sleep"};
-
 const char* uart_response[8]={"ok", "invalid_param", "radio_err", "radio_rx", "busy", "radio_tx_ok", "4294967245", "none"};
-
 static wait_response = false;
 /*---------------------------------------------------------------------------*/
 void
 loraphy_input(int size)
 {
     int i = LORABUF_UART_RESP_FIRST;
-    uart_response_t uart_resp;
+    loraphy_cmd_response_t uart_resp;
     
     while(i<LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && wait_response){
-        uart_resp = lorabuf_get_attr(i);
-        if(strstr((const char*)lorabuf_c, uart_response[uart_resp])){
+        uart_resp = (loraphy_cmd_response_t)lorabuf_get_attr(i);
+        if(strstr((const char*)lorabuf_c_get_buf(), uart_response[uart_resp])){
             wait_response = false;
         }
         i++;
     }
-    if(expected_response[uart_resp] == LORAPHY_CMD_RESPONSE_RADIO_RX){
-        //todo loramac_input()
+    if(uart_response[uart_resp] == LORAPHY_CMD_RESPONSE_RADIO_RX){
+        loramac_input();
     }
 }
 /*---------------------------------------------------------------------------*/
@@ -65,6 +63,7 @@ loraphy_init(void)
     //UART configuration
     uart_init(LORAPHY_UART_PORT);
     uart_set_input(LORAPHY_UART_PORT, &uart_rx);
+    loraphy_prepare_data(LORAPHY_CMD_MAC_PAUSE, LORAPHY_PARAM_NONE, "", LORAPHY_CMD_RESPONSE_U_INT, LORAPHY_CMD_RESPONSE_NONE);
 }
 /*---------------------------------------------------------------------------*/
 bool
@@ -92,18 +91,19 @@ loraphy_send(void)
 }
 /*---------------------------------------------------------------------------*/
 int
-loraphy_set_parameter(loraphy_param_t type, char* value){
+loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, char* value, loraphy_cmd_response_t exp1, loraphy_cmd_response_t exp2)
+{
     if(wait_response){
         return 1;
     }
 
-    char* cmd = loraphy_commands_values[LORAPHY_RADIO_SET];
-    char* param = loraphy_params_values[type];
+    char* cmd = loraphy_commands_values[command];
+    char* param = loraphy_params_values[parameter];
     int size = LORAPHY_PARAM_VALUE_MAX_SIZE + LORAPHY_COMMMAND_VALUE_MAX_SIZE +strlen(value);
     char data[size];
     sprintf(data, "%s %s %s", cmd, param, value);
-    lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP1, LORAPHY_CMD_RESPONSE_OK);
-    lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP2, LORAPHY_CMD_RESPONSE_NONE);
+    lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP1, exp1);
+    lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP2, exp2);
     lorabuf_c_copy_from(data, size);
-    return loraphy_send();
+    return 0;
 }

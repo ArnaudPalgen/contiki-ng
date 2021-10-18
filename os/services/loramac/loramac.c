@@ -14,11 +14,23 @@
 /*---------------------------------------------------------------------------*/
 static loramac_state_t state;
 
+/*Retransmit and query timer*/
+static struct ctimer retransmit_timer;
+static struct ctimer query_timer;
+
+static process_event_t loramac_state_change_event;
+static process_event_t loramac_event_output;
+
+/*Counters*/
 static uint8_t next_seq = 0;
+static uint8_t expected_seq = 0;
+static uint8_t retransmit_attempt=0;
 
 static uint16_t last_sent_datalen;
 static lora_frame_hdr_t last_sent_frame;
 //static uint8_t last_sent_data[LORA_PAYLOAD_BYTE_MAX_SIZE];//TODO usefull ??
+
+PROCESS(loramac_process, "LoRa-MAC process");
 
 /*---------------------------------------------------------------------------*/
 void
@@ -32,6 +44,18 @@ void
 loramac_send(void)//done
 {
     process_post(&loramac_process, loramac_event_output, NULL);
+}
+/*---------------------------------------------------------------------------*/
+void
+on_query_timeout(void *ptr)
+{
+
+}
+/*---------------------------------------------------------------------------*/
+void
+on_retransmit_timeout(void *ptr)
+{
+
 }
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -51,7 +75,7 @@ on_join_response(void)
         loraaddr_set_node_addr(&new_addr);
 
         ctimer_stop(&retransmit_timer);
-        ctimer_set(&query_timer, LORAMAC_QUERY_TIMEOUT, query_timeout, NULL);
+        ctimer_set(&query_timer, LORAMAC_QUERY_TIMEOUT, on_query_timeout, NULL);
         expected_seq ++;
 
         change_notify_state(READY);

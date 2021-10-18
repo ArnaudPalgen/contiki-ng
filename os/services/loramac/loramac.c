@@ -49,13 +49,35 @@ loramac_send(void)//done
 void
 on_query_timeout(void *ptr)
 {
-
+    ctimer_stop(&query_timer);
+    lorabuf_set_addr(LORABUF_ADDR_SENDER, &lora_node_addr);
+    lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
+    lorabuf_set_data_len(0);
+    lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, QUERY);
+    lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, next_seq);
+    next_seq++;
+    loramac_send();
 }
 /*---------------------------------------------------------------------------*/
 void
-on_retransmit_timeout(void *ptr)
+on_retransmit_timeout(void *ptr)//done
 {
-
+    ctimer_stop(&retransmit_timer);
+    if(retransmit_attempt < LORAMAC_MAX_RETRANSMIT){
+        loramac_send();
+        retransmit_attempt ++;
+        LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT);
+        LORAPHY_RX();
+        ctimer_restart(&retransmit_timer);
+    }else{
+        retransmit_attempt = 0;
+        if(last_sent_frame.command == JOIN){
+            LORAPHY_SLEEP(LORAMAC_JOIN_SLEEP_TIME);
+            ctimer_restart(&retransmit_timer);
+        }else{
+            change_notify_state(READY);
+        }
+    }
 }
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/

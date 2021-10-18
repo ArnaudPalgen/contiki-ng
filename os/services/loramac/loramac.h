@@ -5,8 +5,9 @@
 #include "loraaddr.h"
 /*---------------------------------------------------------------------------*/
 #define LORAMAC_QUERY_TIMEOUT 1 //todo
-#define LORAMAC_MAX_RETRANSMIT
+#define LORAMAC_MAX_RETRANSMIT 3
 #define LORAMAC_RETRANSMIT_TIMEOUT 1 //todo
+#define LORAMAC_JOIN_SLEEP_TIME 5000 // in ms. 5000 ms -> 5s
 /*---------------------------------------------------------------------------*/
 /*The supported LoRaMAC commands*/
 typedef enum loramac_command {

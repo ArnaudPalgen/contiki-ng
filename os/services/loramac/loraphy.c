@@ -3,6 +3,8 @@
 #include "dev/uart.h"
 #include "sys/log.h"
 #include "sys/rtimer.h"
+#include "framer.h"
+#include "loramac.h"
 #include <stdlib.h>
 /*---------------------------------------------------------------------------*/
 const char* loraphy_params_values[8]={"bw", "cr", "freq", "mod", "pwr", "sf", "wdt", ""};

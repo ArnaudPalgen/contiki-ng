@@ -11,7 +11,7 @@ const char* uart_response[8]={"ok", "invalid_param", "radio_err", "radio_rx", "b
 static wait_response = false;
 /*---------------------------------------------------------------------------*/
 void
-loraphy_input(int size)
+loraphy_input(int payload_size)
 {
     int i = LORABUF_UART_RESP_FIRST;
     loraphy_cmd_response_t uart_resp;
@@ -24,6 +24,7 @@ loraphy_input(int size)
         i++;
     }
     if(uart_response[uart_resp] == LORAPHY_CMD_RESPONSE_RADIO_RX){
+        parse(lorabuf_c_get_buf, payload_size);
         loramac_input();
     }
 }
@@ -38,7 +39,7 @@ uart_rx(unsigned char c)
         cr = true;
     }else if(c == '\n'){
         if(cr == true){
-            loraphy_input(index+1);
+            loraphy_input(index+1-LORA_HDR_CHAR_SIZE);
             cr = false;
             index = 0;
         }

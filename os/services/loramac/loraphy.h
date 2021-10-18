@@ -10,12 +10,13 @@
 
 /*---------------------------------------------------------------------------*/
 typedef enum loraphy_param{
-    LORAPHY_PARAM_MODE,
-    LORAPHY_PARAM_FREQ,
     LORAPHY_PARAM_BW,
     LORAPHY_PARAM_CR,
+    LORAPHY_PARAM_FREQ,
+    LORAPHY_PARAM_MODE,
     LORAPHY_PARAM_PWR,
     LORAPHY_PARAM_SF,
+    LORAPHY_PARAM_WDT,
     LORAPHY_PARAM_NONE,
 }loraphy_param_t;
 
@@ -47,24 +48,24 @@ int loraphy_send(void);
 
 int loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, char* value, loraphy_cmd_response_t exp1, loraphy_cmd_response_t exp2);
 /*---------------------------------------------------------------------------*/
-#define LORAPHY_TX(data) ({  \
-    loraphy_prepare_data(LORAPHY_RADIO_TX, LORAPHY_PARAM_NONE, data, LORAPHY_CMD_RESPONSE_RADIO_TX_OK, LORAPHY_CMD_RESPONSE_RADIO_ERR);  \
-    return loraphy_send;  \
-    })
+#define LORAPHY_TX(data){\
+    loraphy_prepare_data(LORAPHY_CMD_RADIO_TX, LORAPHY_PARAM_NONE, data, LORAPHY_CMD_RESPONSE_RADIO_TX_OK, LORAPHY_CMD_RESPONSE_RADIO_ERR);\
+    int result = loraphy_send();\
+}
 
-#define LORAPHY_SET_PARAM(param, value) ({  \
-    loraphy_prepare_data(LORAPHY_RADIO_SET, param, value, LORAPHY_CMD_RESPONSE_OK, LORAPHY_CMD_RESPONSE_NONE);  \
-    return loraphy_send;  \
-    })
+#define LORAPHY_SET_PARAM(param, value){\
+    loraphy_prepare_data(LORAPHY_CMD_RADIO_SET, param, value, LORAPHY_CMD_RESPONSE_OK, LORAPHY_CMD_RESPONSE_NONE);\
+    int result = loraphy_send();\
+}
 
 #define LORAPHY_RX() ({  \
     loraphy_prepare_data(LORAPHY_CMD_RADIO_RX, LORAPHY_PARAM_NONE, "0", LORAPHY_CMD_RESPONSE_RADIO_RX, LORAPHY_CMD_RESPONSE_RADIO_ERR);  \
-    return loraphy_send;  \
+    int result = loraphy_send();  \
     })
 
 #define LORAPHY_SLEEP(duration) ({  \
     loraphy_prepare_data(LORAPHY_CMD_SYS_SLEEP, LORAPHY_PARAM_NONE, duration, LORAPHY_CMD_RESPONSE_OK, LORAPHY_CMD_RESPONSE_NONE);  \
-    return loraphy_send;  \
+    int result = loraphy_send();  \
     })
 
 #endif /* LORAPHY_H_ */

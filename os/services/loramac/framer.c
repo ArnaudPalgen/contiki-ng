@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "lorabuf.h"
 #include "framer.h"
 #include "loraaddr.h"
@@ -12,7 +13,7 @@ parse(char *data, int payload_len)
     char id_c[4];
     uint16_t id;
 
-    /*extract src addr*/
+    /*extract src addr2*/
     memcpy(prefix_c, data, 2);
     data = data+2;
     memcpy(id_c, data, 4);
@@ -24,7 +25,7 @@ parse(char *data, int payload_len)
     lora_addr_t addr = {prefix, id};
     lorabuf_set_addr(LORABUF_ADDR_SENDER, &addr);
 
-    /*extract dest addr*/
+    /*extract dest addr2*/
     memcpy(prefix_c, data, 2);
     data = data+2;
     memcpy(id_c, data, 4);
@@ -33,8 +34,8 @@ parse(char *data, int payload_len)
     prefix = (uint8_t) strtol(prefix_c, NULL, 16);
     id = (uint16_t) strtol(id_c, NULL, 16);
 
-    lora_addr_t addr = {prefix, id};
-    lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &addr);
+    lora_addr_t addr2 = {prefix, id};
+    lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &addr2);
 
     /*extact flags and command*/
     char cmd[2];
@@ -48,7 +49,7 @@ parse(char *data, int payload_len)
     bool k    = (bool)((i_cmd >> 7) & flag_filter);
     bool next = (bool)((i_cmd >> 6) & flag_filter);
     
-    mac_command_t command = (uint8_t)( i_cmd & command_filter );
+    loramac_command_t command = (uint8_t)( i_cmd & command_filter );
     lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, command);
     lorabuf_set_attr(LORABUF_ATTR_MAC_NEXT, next);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CONFIRMED, k);
@@ -61,6 +62,7 @@ parse(char *data, int payload_len)
     lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, sn);
 
     /*extract payload*/
+    lorabuf_set_data_len(payload_len);
     lorabuf_copy_from(data, payload_len);//review
 }
 /*---------------------------------------------------------------------------*/

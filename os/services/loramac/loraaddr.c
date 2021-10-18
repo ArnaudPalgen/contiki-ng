@@ -28,3 +28,9 @@ loraaddr_print(const lora_addr_t *addr)
 {
     printf("%d:%d", addr->prefix, addr->id);
 }
+/*---------------------------------------------------------------------------*/
+bool
+loraaddr_is_in_dag(lora_addr_t *addr)
+{
+    return addr->prefix == lora_node_addr.prefix;
+}

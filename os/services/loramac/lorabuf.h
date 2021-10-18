@@ -2,6 +2,7 @@
 #define LORABUF_H_
 
 #include "contiki.h"
+#include "loraaddr.h"
 
 /*---------------------------------------------------------------------------*/
 #define LORA_HDR_BYTE_SIZE 8
@@ -18,7 +19,7 @@
 #define LORABUF_NUM_ADDRS 2
 #define LORABUF_NUM_EXP_UART_RESP 2
 /*---------------------------------------------------------------------------*/
-typedef uint16_t lorabuf_attr_t;
+typedef uint8_t lorabuf_attr_t;
 /*---------------------------------------------------------------------------*/
 void lorabuf_c_write_char(char c, int pos);
 
@@ -47,20 +48,30 @@ const lora_addr_t * lorabuf_get_addr(uint8_t type);
 void print_lorabuf(void);
 
 uint8_t* lorabuf_get_buf(void);
+
+int lorabuf_copy_to(const void* to);
+
+uint8_t* lorabuf_mac_param_ptr(void);
 /*---------------------------------------------------------------------------*/
 enum {
+    /*UART attributes*/
     LORABUF_ATTR_UART_CMD,
     LORABUF_ATTR_UART_EXP_RESP1,
     LORABUF_ATTR_UART_EXP_RESP2,
+
+    /*frame parameters*/
     LORABUF_ATTR_MAC_CONFIRMED,
     LORABUF_ATTR_MAC_SEQNO,
     LORABUF_ATTR_MAC_NEXT,
     LORABUF_ATTR_MAC_CMD,
+
+    /*frame addresses*/
     LORABUF_ADDR_SENDER,
     LORABUF_ADDR_RECEIVER
-}
+};
 /*---------------------------------------------------------------------------*/
 #define LORABUF_ADDR_FIRST LORABUF_ADDR_SENDER
 #define LORABUF_UART_RESP_FIRST LORABUF_ATTR_UART_EXP_RESP1
+#define LORABUF_MAC_PARAMS_FIRST LORABUF_ATTR_MAC_CONFIRMED
 /*---------------------------------------------------------------------------*/
 #endif /* LORABUF_H_ */

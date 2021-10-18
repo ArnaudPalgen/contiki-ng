@@ -104,3 +104,17 @@ lorabuf_get_buf(void)
 {
     return &lorabuf;
 }
+/*---------------------------------------------------------------------------*/
+int
+lorabuf_copy_to(const void* to)
+{
+    memcpy(to, lorabuf, datalen);
+    return datalen;
+}
+/*---------------------------------------------------------------------------*/
+uint8_t*
+lorabuf_mac_param_ptr(void)
+{
+    return &lorabuf_attrs[LORABUF_MAC_PARAMS_FIRST];
+}
+/*---------------------------------------------------------------------------*/

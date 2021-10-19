@@ -4,11 +4,15 @@
 #include "loramac.h"
 #include "net/netstack.h"
 #include "dev/button-hal.h"
+#include "net/routing/routing.h"
+/*---------------------------------------------------------------------------*/
+PROCESS(lora_stack_process, "LoRaMAC-interface");
 /*---------------------------------------------------------------------------*/
 static void
 init(void)
 {
     printf("hello\n");
+    process_start(&lora_stack_process, NULL);
 }
 /*---------------------------------------------------------------------------*/
 /*
@@ -47,7 +51,12 @@ bridge_input(void)
     uip_ip6addr_t ip_src, ip_dest;
     lora2ipv6(lorabuf_get_addr(LORABUF_ADDR_SENDER), &ip_src);
     lora2ipv6(lorabuf_get_addr(LORABUF_ADDR_RECEIVER), &ip_dest);
-    //todo continue
+    memcpy(&(uip_buf), lorabuf_get_buf(), 8);//ipv6 hdr
+    memcpy(&(uip_buf[8]), &(ip_src.u8), 16);//ipv6 src addr
+    memcpy(&(uip_buf[24]), &(ip_dest.u8), 16);//ipv6 dest addr
+    memcpy(&(uip_buf)+40, lorabuf_get_buf()+8, lorabuf_get_data_len()-8);//ipv6 payload
+    uip_len = lorabuf_get_data_len()+32;
+    tcpip_input();
 }
 /*---------------------------------------------------------------------------*/
 const struct uip_fallback_interface loramac_interface = {
@@ -67,7 +76,7 @@ PROCESS_THREAD(lora_stack_process, ev, data)
     loramac_root_start();
     PROCESS_WAIT_EVENT_UNTIL(ev == loramac_network_joined);
     uip_ipaddr_t prefix;
-    uip_ip6addr_u8(&prefix, 0xFD, 0, 0, 0, 0, 0, 0, loramac_addr.prefix, 0,0,0,0,0,0,0,0);
+    uip_ip6addr_u8(&prefix, 0xFD, 0, 0, 0, 0, 0, 0, lora_node_addr.prefix, 0,0,0,0,0,0,0,0);
     NETSTACK_ROUTING.root_set_prefix(&prefix, NULL);
     NETSTACK_ROUTING.root_start();
     NETSTACK_MAC.on();

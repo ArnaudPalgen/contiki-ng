@@ -20,6 +20,7 @@ static struct ctimer query_timer;
 
 static process_event_t loramac_state_change_event;
 static process_event_t loramac_event_output;
+process_event_t loramac_network_joined;
 
 /*Counters*/
 static uint8_t next_seq = 0;
@@ -100,6 +101,7 @@ on_join_response(void)
         ctimer_set(&query_timer, LORAMAC_QUERY_TIMEOUT, on_query_timeout, NULL);
         expected_seq ++;
 
+        process_post(PROCESS_BROADCAST, loramac_network_joined, NULL);//signal to all process that the LoRaMAC network is joined
         change_notify_state(READY);
     }else
     {
@@ -202,7 +204,7 @@ loramac_root_start(void)//done
     state = ALONE;
     loramac_event_output = process_alloc_event();
     loramac_state_change_event = process_alloc_event();
-
+    loramac_network_joined = process_alloc_event();
 
     lora_addr_t lora_init_node_addr = {node_id, node_id};
     loraaddr_set_node_addr(&lora_init_node_addr);

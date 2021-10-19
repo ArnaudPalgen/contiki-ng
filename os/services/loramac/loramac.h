@@ -41,4 +41,6 @@ int loramac_input(void);
 
 void loramac_send(void);
 
+extern process_event_t loramac_network_joined;//the event that is used when the node has joined a LoRaMAC network
+
 #endif /* LORAMAC_H_ */

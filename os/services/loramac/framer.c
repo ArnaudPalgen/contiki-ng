@@ -3,17 +3,27 @@
 #include "framer.h"
 #include "loraaddr.h"
 #include "loramac.h"
-
+#include "sys/log.h"
+/*---------------------------------------------------------------------------*/
+/*logging configuration*/
+#define LOG_MODULE "Framer"
+#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_CONF_WITH_COLOR 3
+/*---------------------------------------------------------------------------*/
 int
 parse(char *data, int payload_len)
 {
+    LOG_DBG("enter parse\n");
+    LOG_DBG("   > data: %s\n", data);
+    LOG_DBG("   > payload_len: %d\n", payload_len);
+
     char prefix_c[2];
     uint8_t prefix;
     
     char id_c[4];
     uint16_t id;
 
-    /*extract src addr2*/
+    /*extract src addr*/
     memcpy(prefix_c, data, 2);
     data = data+2;
     memcpy(id_c, data, 4);
@@ -25,7 +35,7 @@ parse(char *data, int payload_len)
     lora_addr_t addr = {prefix, id};
     lorabuf_set_addr(LORABUF_ADDR_SENDER, &addr);
 
-    /*extract dest addr2*/
+    /*extract dest addr*/
     memcpy(prefix_c, data, 2);
     data = data+2;
     memcpy(id_c, data, 4);
@@ -62,13 +72,19 @@ parse(char *data, int payload_len)
     lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, sn);
 
     /*extract payload*/
+    // todo review
     lorabuf_set_data_len(payload_len);
-    lorabuf_copy_from(data, payload_len);//review
+    lorabuf_copy_from(data, payload_len);
+    LOG_DBG("parse finished\n");
+    return 0;
 }
 /*---------------------------------------------------------------------------*/
 int
 create(char* dest)
 {
+    LOG_DBG("enter create\n");
+    LOG_DBG("   > dest: %p\n", dest);
+
     char addr_c[6];
     lora_addr_t *addr_p;
     
@@ -129,5 +145,6 @@ create(char* dest)
             dest = dest+2;
         }
     }
-
+    LOG_DBG("create finished\n");
+    return 0;
 }

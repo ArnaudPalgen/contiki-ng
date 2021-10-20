@@ -15,7 +15,7 @@ typedef struct lora_addr{
 /*---------------------------------------------------------------------------*/
 void loraaddr_copy(lora_addr_t *dest, const lora_addr_t *from);
 
-int loraaddr_compare(lora_addr_t *addr1, lora_addr_t *addr2);
+int loraaddr_compare(const lora_addr_t *addr1, const lora_addr_t *addr2);
 
 void loraaddr_set_node_addr(lora_addr_t *addr);
 
@@ -44,4 +44,14 @@ extern const lora_addr_t lora_root_addr;
 extern lora_addr_t lora_node_addr;
 extern const lora_addr_t lora_null_addr;
 /*---------------------------------------------------------------------------*/
+
+#define LOG_LORA_ADDR(level, lora_addr) do {  \
+    if((level) <= (LOG_LEVEL)) { \
+        loraaddr_print(lora_addr); \
+    } \
+    } while (0)
+
+#define LOG_INFO_LR_ADDR(...)    LOG_LORA_ADDR(LOG_LEVEL_INFO, __VA_ARGS__)
+#define LOG_DBG_LR_ADDR(...)    LOG_LORA_ADDR(LOG_LEVEL_DBG, __VA_ARGS__)
+
 #endif /* LORAADDR_H_ */

@@ -1,5 +1,11 @@
 #include "loraaddr.h"
-
+#include "sys/log.h"
+/*---------------------------------------------------------------------------*/
+/*logging configuration*/
+#define LOG_MODULE "LoRa ADDR"
+#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_CONF_WITH_COLOR 3
+/*---------------------------------------------------------------------------*/
 lora_addr_t lora_node_addr;
 
 const lora_addr_t lora_root_addr = {1, 0};
@@ -12,8 +18,13 @@ loraaddr_copy(lora_addr_t *dest, const lora_addr_t *from)
 }
 /*---------------------------------------------------------------------------*/
 int
-loraaddr_compare(lora_addr_t *addr1, lora_addr_t *addr2)
+loraaddr_compare(const lora_addr_t *addr1, const lora_addr_t *addr2)
 {
+    LOG_DBG("Compare ");
+    LOG_DBG_LR_ADDR(addr1);
+    LOG_DBG(" and ");
+    LOG_DBG_LR_ADDR(addr2);
+    LOG_DBG(" %s\n", (memcmp(addr1, addr2, LORA_ADDR_SIZE) == 0) ? "true":"false");
     return (memcmp(addr1, addr2, LORA_ADDR_SIZE) == 0);
 }
 /*---------------------------------------------------------------------------*/
@@ -21,6 +32,8 @@ void
 loraaddr_set_node_addr(lora_addr_t *addr)
 {
     memcpy(&lora_node_addr, addr, LORA_ADDR_SIZE);
+    LOG_INFO("new LoRa addr:");
+    LOG_INFO_LR_ADDR(&lora_node_addr);
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -32,6 +45,9 @@ loraaddr_print(const lora_addr_t *addr)
 bool
 loraaddr_is_in_dag(lora_addr_t *addr)
 {
+    LOG_DBG("ADDR ");
+    LOG_DBG_LR_ADDR(addr);
+    LOG_DBG(" is in dag: %s\n", (addr->prefix == lora_node_addr.prefix) ? "true":"false");
     return addr->prefix == lora_node_addr.prefix;
 }
 /*---------------------------------------------------------------------------*/

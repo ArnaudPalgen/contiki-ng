@@ -1,6 +1,12 @@
 #include "lorabuf.h"
 #include "loraaddr.h"
 #include "sys/cc.h"
+#include "sys/log.h"
+/*---------------------------------------------------------------------------*/
+/*logging configuration*/
+#define LOG_MODULE "LoRa BUF"
+#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 lorabuf_attr_t lorabuf_attrs[LORABUF_NUM_ATTRS];
 lora_addr_t lorabuf_addrs[LORABUF_NUM_ADDRS];
@@ -28,13 +34,20 @@ lorabuf_c_copy_from(const char* data, unsigned int size)
 char*
 lorabuf_c_get_buf(void)
 {
-    return &lorabuf_c;
+    return (char *) &lorabuf_c;
 }
 /*---------------------------------------------------------------------------*/
 uint16_t
 lorabuf_get_data_c_len(void)
 {
     return datalen_c;
+}
+/*---------------------------------------------------------------------------*/
+uint16_t
+lorabuf_set_data_c_len(uint16_t len)
+{
+    datalen_c = len;
+    return len;
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -87,7 +100,7 @@ lorabuf_set_addr(uint8_t type, const lora_addr_t *addr)
     loraaddr_copy(&lorabuf_addrs[type - LORABUF_ADDR_FIRST], addr);
 }
 /*---------------------------------------------------------------------------*/
-const lora_addr_t *
+lora_addr_t *
 lorabuf_get_addr(uint8_t type)
 {
     return &lorabuf_addrs[type - LORABUF_ADDR_FIRST];
@@ -102,15 +115,15 @@ print_lorabuf(void)
 uint8_t*
 lorabuf_get_buf(void)
 {
-    return &lorabuf;
+    return (uint8_t *) &lorabuf;
 }
 /*---------------------------------------------------------------------------*/
-int
-lorabuf_copy_to(const void* to)
-{
-    memcpy(to, lorabuf, datalen);
-    return datalen;
-}
+//int
+//lorabuf_copy_to(const void* to)
+//{
+//    memcpy(to, lorabuf, datalen);
+//    return datalen;
+//}
 /*---------------------------------------------------------------------------*/
 uint8_t*
 lorabuf_mac_param_ptr(void)

@@ -5,13 +5,19 @@
 #include "net/netstack.h"
 #include "dev/button-hal.h"
 #include "net/routing/routing.h"
+#include "sys/log.h"
+/*---------------------------------------------------------------------------*/
+/*logging configuration*/
+#define LOG_MODULE "LoRa ADDR"
+#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 PROCESS(lora_stack_process, "LoRaMAC-interface");
 /*---------------------------------------------------------------------------*/
 static void
 init(void)
 {
-    printf("hello\n");
+    LOG_INFO("LoRa Stack bridge start\n");
     process_start(&lora_stack_process, NULL);
 }
 /*---------------------------------------------------------------------------*/
@@ -23,6 +29,7 @@ init(void)
 static int
 output(void)
 {
+    LOG_DBG("receive packet for LoRa Stack\n");
     int uip_index = 0;
     int datalen = 0;
     uint8_t* buf_p = lorabuf_get_buf();
@@ -33,7 +40,7 @@ output(void)
             // UIP_IPH_LEN is the ipv6 header size
             uip_index= UIP_IPH_LEN;
         }
-        memcpy(buf_p, uip_buf[uip_index], 1);
+        memcpy(buf_p, &(uip_buf[uip_index]), 1);
         uip_index++;
         datalen++;
     }
@@ -48,6 +55,7 @@ output(void)
 void
 bridge_input(void)
 {
+    LOG_DBG("receive packet for UIP Stack\n");
     uip_ip6addr_t ip_src, ip_dest;
     lora2ipv6(lorabuf_get_addr(LORABUF_ADDR_SENDER), &ip_src);
     lora2ipv6(lorabuf_get_addr(LORABUF_ADDR_RECEIVER), &ip_dest);
@@ -73,10 +81,15 @@ PROCESS_THREAD(lora_stack_process, ev, data)
     /*todo remove*/
     /*to make development easier*/
     PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
+    LOG_DBG("button pressed. wait network is joined\n");
     loramac_root_start();
     PROCESS_WAIT_EVENT_UNTIL(ev == loramac_network_joined);
+
+    LOG_DBG("network joined\n");
+
     uip_ipaddr_t prefix;
     uip_ip6addr_u8(&prefix, 0xFD, 0, 0, 0, 0, 0, 0, lora_node_addr.prefix, 0,0,0,0,0,0,0,0);
+
     NETSTACK_ROUTING.root_set_prefix(&prefix, NULL);
     NETSTACK_ROUTING.root_start();
     NETSTACK_MAC.on();

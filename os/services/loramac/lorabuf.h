@@ -28,6 +28,7 @@ void lorabuf_c_copy_from(const char* data, unsigned int size);
 char* lorabuf_c_get_buf(void);
 
 uint16_t lorabuf_get_data_c_len(void);
+uint16_t lorabuf_set_data_c_len(uint16_t len);
 /*---------------------------------------------------------------------------*/
 void lorabuf_clear(void);
 
@@ -43,13 +44,13 @@ lorabuf_attr_t lorabuf_get_attr(uint8_t type);
 
 void lorabuf_set_addr(uint8_t type, const lora_addr_t *addr);
 
-const lora_addr_t * lorabuf_get_addr(uint8_t type);
+lora_addr_t * lorabuf_get_addr(uint8_t type);
 
 void print_lorabuf(void);
 
 uint8_t* lorabuf_get_buf(void);
 
-int lorabuf_copy_to(const void* to);
+//int lorabuf_copy_to(const void* to);
 
 uint8_t* lorabuf_mac_param_ptr(void);
 /*---------------------------------------------------------------------------*/

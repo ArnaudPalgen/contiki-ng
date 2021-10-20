@@ -50,22 +50,22 @@ int loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, c
 /*---------------------------------------------------------------------------*/
 #define LORAPHY_TX(data){\
     loraphy_prepare_data(LORAPHY_CMD_RADIO_TX, LORAPHY_PARAM_NONE, data, LORAPHY_CMD_RESPONSE_RADIO_TX_OK, LORAPHY_CMD_RESPONSE_RADIO_ERR);\
-    int result = loraphy_send();\
+    loraphy_send();\
 }
 
 #define LORAPHY_SET_PARAM(param, value){\
     loraphy_prepare_data(LORAPHY_CMD_RADIO_SET, param, value, LORAPHY_CMD_RESPONSE_OK, LORAPHY_CMD_RESPONSE_NONE);\
-    int result = loraphy_send();\
+    loraphy_send();\
 }
 
 #define LORAPHY_RX() ({  \
     loraphy_prepare_data(LORAPHY_CMD_RADIO_RX, LORAPHY_PARAM_NONE, "0", LORAPHY_CMD_RESPONSE_RADIO_RX, LORAPHY_CMD_RESPONSE_RADIO_ERR);  \
-    int result = loraphy_send();  \
+    loraphy_send();  \
     })
 
 #define LORAPHY_SLEEP(duration) ({  \
     loraphy_prepare_data(LORAPHY_CMD_SYS_SLEEP, LORAPHY_PARAM_NONE, duration, LORAPHY_CMD_RESPONSE_OK, LORAPHY_CMD_RESPONSE_NONE);  \
-    int result = loraphy_send();  \
+    loraphy_send();  \
     })
 
 #endif /* LORAPHY_H_ */

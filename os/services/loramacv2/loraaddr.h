@@ -1,8 +1,8 @@
-#include "contiki.h"
-#include "net/ipv6/uip.h"
-
 #ifndef LORAADDR_H_
 #define LORAADDR_H_
+
+#include "contiki.h"
+#include "net/ipv6/uip.h"
 /*---------------------------------------------------------------------------*/
 #define LORA_ADDR_PREFIX_SIZE 1
 #define LORA_ADDR_ID_SIZE 2

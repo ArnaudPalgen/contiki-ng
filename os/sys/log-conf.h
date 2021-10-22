@@ -99,10 +99,12 @@
  * \param levelstr  The log level as string
  * \param module    The module string descriptor
  */
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #ifdef LOG_CONF_OUTPUT_PREFIX
 #define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_CONF_OUTPUT_PREFIX(level, levelstr, module)
 #else /* LOG_CONF_OUTPUT_PREFIX */
-#define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_OUTPUT("[%lu: %-4s: %-10s] ", clock_seconds(), levelstr, module)
+//#define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_OUTPUT("[%lu: %-4s: %-10s] ", clock_seconds(), levelstr, module)
+#define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_OUTPUT("%-4lu | %-4s | %-15s:%-4d - ", clock_seconds(), levelstr, __FILENAME__, __LINE__)
 #endif /* LOG_CONF_OUTPUT_PREFIX */
 
 /******************************************************************************/

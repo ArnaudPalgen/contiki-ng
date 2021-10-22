@@ -1,7 +1,7 @@
-#include "contiki.h"
-
 #ifndef LORAPHY_H_
 #define LORAPHY_H_
+
+#include "contiki.h"
 
 #define LORAPHY_UART_PORT 1
 

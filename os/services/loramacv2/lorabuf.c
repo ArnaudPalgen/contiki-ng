@@ -85,6 +85,7 @@ lorabuf_copy_from(const void* from, uint16_t len)
 void
 lorabuf_set_attr(uint8_t type, lorabuf_attr_t val)
 {
+    LOG_DBG("SET ATTR %d to val %d\n", type, val);
     lorabuf_attrs[type] = val;
 }
 /*---------------------------------------------------------------------------*/

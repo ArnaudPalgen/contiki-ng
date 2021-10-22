@@ -9,7 +9,7 @@
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #define LOG_MODULE "LoRa MAC"
-#define LOG_LEVEL LOG_LEVEL_INFO
+#define LOG_LEVEL LOG_LEVEL_DBG
 #define LOG_CONF_WITH_COLOR 3
 static char* mac_states_str[3] = {"ALONE", "READY", "WAIT_RESPONSE"};
 /*---------------------------------------------------------------------------*/
@@ -244,7 +244,9 @@ loramac_root_start(void)//done
 
     lora_addr_t lora_init_node_addr = {node_id, node_id};
     loraaddr_set_node_addr(&lora_init_node_addr);
+    LOG_DBG("CALL PHY INIT\n");
     loraphy_init();
+    LOG_DBG("PHY INIT DONE\n");
     send_join_request();
 
 }

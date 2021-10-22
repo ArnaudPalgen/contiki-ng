@@ -34,6 +34,7 @@ loraaddr_set_node_addr(lora_addr_t *addr)
     memcpy(&lora_node_addr, addr, LORA_ADDR_SIZE);
     LOG_INFO("new LoRa addr:");
     LOG_INFO_LR_ADDR(&lora_node_addr);
+    printf("\n");
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -55,4 +56,11 @@ void
 lora2ipv6(lora_addr_t *src_addr, uip_ip6addr_t *dest_addr)
 {
     uip_ip6addr_u8(dest_addr, 0xFD, 0, 0, 0, 0, 0, 0, src_addr->prefix, 0x02, 0x12, 0x4B, 0x00, 0x06, 0x0D, src_addr->id>>8, src_addr->id);
+}
+/*---------------------------------------------------------------------------*/
+void
+ipv62lora(uip_ip6addr_t *src_addr, lora_addr_t *dest_addr)
+{
+  dest_addr->prefix = src_addr->u8[7];
+  dest_addr->id = (src_addr->u8[14] <<8) + src_addr->u8[15];
 }

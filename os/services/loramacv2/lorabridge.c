@@ -1,11 +1,15 @@
-#include <stdio.h>
-#include "net/ipv6/uip.h"
-#include "lorabuf.h"
+#include "lorabridge.h"
 #include "loramac.h"
+#include "lorabuf.h"
+#include "net/ipv6/uip.h"
 #include "net/netstack.h"
-#include "dev/button-hal.h"
 #include "net/routing/routing.h"
+#include "dev/button-hal.h"
 #include "sys/log.h"
+#include "loraaddr.h"
+#include <stdio.h>
+
+
 /*---------------------------------------------------------------------------*/
 /*logging configuration*/
 #define LOG_MODULE "LoRa ADDR"

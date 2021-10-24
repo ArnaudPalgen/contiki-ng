@@ -50,7 +50,7 @@ uart_rx(unsigned char c)
     static bool cr = false;
     static unsigned int index = 0;
     static bool start = true;
-    LOG_DBG("RECEUVE CGAR\n");
+
     if(start){
         start=false;
         lorabuf_c_clear();
@@ -68,7 +68,7 @@ uart_rx(unsigned char c)
             index = 0;
         }
     }else if((int)c != 254 && (int)c != 248 && (int)c != 192 && (int)c != 240){
-        LOG_DBG("receive char %c\n ", c);
+        //LOG_DBG("receive char %c\n ", c);
         //LOG_DBG("index: %d\n", index);
         lorabuf_c_write_char(c, index);
         index ++;
@@ -77,16 +77,13 @@ uart_rx(unsigned char c)
 }
 /*---------------------------------------------------------------------------*/
 /*write a char* to the UART connection*/
-void write_uart(char* s, int len){
+void write_uart(char *s, int len){
     LOG_DBG("write UART{%s} with len=%d\n", s, len);
     LOG_DBG("WAIT UART response\n");
     int i=0;
     //int max = lorabuf_get_data_c_len();
-    char current;
     while(/**s != 0 && */i < len){
-        current = *s++;
-        LOG_DBG("send char %s\n", &current);
-        uart_write_byte(LORAPHY_UART_PORT, current);
+        uart_write_byte(LORAPHY_UART_PORT, *s++);
         i++;
     }
     uart_write_byte(LORAPHY_UART_PORT, '\r');
@@ -109,10 +106,10 @@ bool
 wait(void)
 {
 
-    //RTIMER_BUSYWAIT_UNTIL(!wait_response, RTIMER_SECOND);
-    while(wait_response){
-        LOG_DBG("h1\n");
-    }
+    RTIMER_BUSYWAIT_UNTIL(!wait_response, RTIMER_SECOND);
+    //while(wait_response){
+    //    //LOG_DBG("h1\n");
+    //}
     return !wait_response;
 }
 /*---------------------------------------------------------------------------*/
@@ -127,16 +124,15 @@ loraphy_send(void)
     LOG_DBG("BEFORE WRITE UART\n");
     wait_response = true;
     write_uart(buf, lorabuf_get_data_c_len());
-    LOG_DBG("AFTER WRITE UART, BEFORE WAIT %d\n", wait_response);
+    LOG_DBG("AFTER WRITE UART, BEFORE WAIT\n");
     //while(wait_response){
-    //    //wait_response =
+    //    wait_response =
     //}
-    //LOG_DBG("LOOP END\n");
-    //if (!wait()){
-    //    //todo
-    //    LOG_DBG("WAIT ERROR\n");
-    //    return 1;
-    //}
+    if (!wait()){
+        //todo
+        LOG_DBG("WAIT ERROR\n");
+        return 1;
+    }
     LOG_DBG("WAIT DONE;-> PHY SEND END\n");
     return 0;
 

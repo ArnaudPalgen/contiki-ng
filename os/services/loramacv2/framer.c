@@ -80,8 +80,9 @@ parse(char *data, int payload_len)
 }
 /*---------------------------------------------------------------------------*/
 int
-create(char* dest)
+create(char* destination)
 {
+    char* dest = destination;
     LOG_DBG("enter create\n");
     LOG_DBG("   > dest: %p\n", dest);
 
@@ -92,6 +93,7 @@ create(char* dest)
     addr_p = lorabuf_get_addr(LORABUF_ADDR_SENDER);
     sprintf(addr_c, "%02X%04X", addr_p->prefix, addr_p->id);
     memcpy(dest,addr_c,6);
+    LOG_DBG("DEST WITH FIRST ADDR:{%s}\n", dest);
     dest=dest+6;
 
     /* create dest addr*/
@@ -145,6 +147,6 @@ create(char* dest)
             dest = dest+2;
         }
     }
-    LOG_DBG("create finished\n");
+    LOG_DBG("create finished{%s}\n", destination);
     return 0;
 }

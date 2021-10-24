@@ -9,6 +9,7 @@
 #define LORAMAC_RETRANSMIT_TIMEOUT 1 //todo
 #define LORAMAC_RETRANSMIT_TIMEOUT_c "1"
 #define LORAMAC_JOIN_SLEEP_TIME_c "5000" // in ms. 5000 ms -> 5s
+#define LORAMAC_DISABLE_WDT "0"
 /*---------------------------------------------------------------------------*/
 /*The supported LoRaMAC commands*/
 typedef enum loramac_command {

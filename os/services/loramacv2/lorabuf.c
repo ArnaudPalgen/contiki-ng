@@ -26,7 +26,7 @@ lorabuf_c_write_char(char c, int pos)
 void
 lorabuf_c_copy_from(const char* data, unsigned int size)
 {
-    lorabuf_clear();
+    //lorabuf_clear();
     memcpy(lorabuf_c, data, size);
     datalen_c = size;
 }
@@ -53,10 +53,17 @@ lorabuf_set_data_c_len(uint16_t len)
 void
 lorabuf_clear(void)
 {
+    LOG_DBG("CLEAR BUFFER\n");
     datalen = 0;
-    datalen_c = 0;
     memset(lorabuf_attrs, 0, sizeof(lorabuf_attrs));
     memset(lorabuf_addrs, 0, sizeof(lorabuf_addrs));
+}
+
+void
+lorabuf_c_clear(void)
+{
+    datalen_c = 0;
+    memset(lorabuf_c, 0, sizeof(lorabuf_addrs));
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -75,7 +82,7 @@ int
 lorabuf_copy_from(const void* from, uint16_t len)
 {
     uint16_t l;
-    lorabuf_clear();
+    //lorabuf_clear();
     l = MIN(LORA_PAYLOAD_BYTE_MAX_SIZE, len);
     memcpy(lorabuf, from, l);
     datalen = l;
@@ -86,13 +93,17 @@ void
 lorabuf_set_attr(uint8_t type, lorabuf_attr_t val)
 {
     LOG_DBG("SET ATTR %d to val %d\n", type, val);
-    lorabuf_attrs[type] = val;
+    //lorabuf_attrs[type] = val;
+    memcpy(&(lorabuf_attrs[type]), &val, sizeof(lorabuf_attr_t));
+    LOG_DBG("NEW ATTR value: %d\n", lorabuf_attrs[type]);
 }
 /*---------------------------------------------------------------------------*/
 lorabuf_attr_t
 lorabuf_get_attr(uint8_t type)
 {
-    return lorabuf_attrs[type];
+    lorabuf_attr_t val = lorabuf_attrs[type];
+    LOG_DBG("RETURN ATTR VALUE FOR TYPE %d: %d\n", type, val);
+    return val;
 }
 /*---------------------------------------------------------------------------*/
 void

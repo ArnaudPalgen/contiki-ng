@@ -24,6 +24,7 @@ loraphy_input(unsigned int payload_size)
     LOG_DBG("INPUT size %d\n", payload_size);
     int i = LORABUF_UART_RESP_FIRST;
     loraphy_cmd_response_t uart_resp=LORAPHY_CMD_RESPONSE_NONE;
+    LOG_DBG("wait_response:{%d}\n", wait_response);
     
     while(i<LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && wait_response){
         LOG_DBG("loop i=%d\n",i);
@@ -49,10 +50,11 @@ uart_rx(unsigned char c)
     static bool cr = false;
     static unsigned int index = 0;
     static bool start = true;
-
+    LOG_DBG("RECEUVE CGAR\n");
     if(start){
         start=false;
-        lorabuf_clear();
+        lorabuf_c_clear();
+        //lorabuf_clear();
     }
     if(c == '\r'){
         cr = true;
@@ -66,7 +68,7 @@ uart_rx(unsigned char c)
             index = 0;
         }
     }else if((int)c != 254 && (int)c != 248 && (int)c != 192 && (int)c != 240){
-        //LOG_DBG("receive char %c\n ", c);
+        LOG_DBG("receive char %c\n ", c);
         //LOG_DBG("index: %d\n", index);
         lorabuf_c_write_char(c, index);
         index ++;
@@ -75,11 +77,17 @@ uart_rx(unsigned char c)
 }
 /*---------------------------------------------------------------------------*/
 /*write a char* to the UART connection*/
-void write_uart(char *s){
-    LOG_DBG("write UART{%s}\n", s);
+void write_uart(char* s, int len){
+    LOG_DBG("write UART{%s} with len=%d\n", s, len);
     LOG_DBG("WAIT UART response\n");
-    while(*s != 0){
-        uart_write_byte(LORAPHY_UART_PORT, *s++);
+    int i=0;
+    //int max = lorabuf_get_data_c_len();
+    char current;
+    while(/**s != 0 && */i < len){
+        current = *s++;
+        LOG_DBG("send char %s\n", &current);
+        uart_write_byte(LORAPHY_UART_PORT, current);
+        i++;
     }
     uart_write_byte(LORAPHY_UART_PORT, '\r');
     uart_write_byte(LORAPHY_UART_PORT, '\n');
@@ -100,8 +108,11 @@ loraphy_init(void)
 bool
 wait(void)
 {
-    wait_response = true;
-    RTIMER_BUSYWAIT_UNTIL(wait_response, RTIMER_SECOND/2);
+
+    //RTIMER_BUSYWAIT_UNTIL(!wait_response, RTIMER_SECOND);
+    while(wait_response){
+        LOG_DBG("h1\n");
+    }
     return !wait_response;
 }
 /*---------------------------------------------------------------------------*/
@@ -114,13 +125,18 @@ loraphy_send(void)
     }
     char* buf = lorabuf_c_get_buf();
     LOG_DBG("BEFORE WRITE UART\n");
-    write_uart(buf);
-    LOG_DBG("AFTER WRITE UART, BEFORE WAIT\n");
-    if (!wait()){
-        //todo
-        LOG_DBG("WAIT ERROR\n");
-        return 1;
-    }
+    wait_response = true;
+    write_uart(buf, lorabuf_get_data_c_len());
+    LOG_DBG("AFTER WRITE UART, BEFORE WAIT %d\n", wait_response);
+    //while(wait_response){
+    //    //wait_response =
+    //}
+    //LOG_DBG("LOOP END\n");
+    //if (!wait()){
+    //    //todo
+    //    LOG_DBG("WAIT ERROR\n");
+    //    return 1;
+    //}
     LOG_DBG("WAIT DONE;-> PHY SEND END\n");
     return 0;
 
@@ -130,11 +146,11 @@ int
 loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, char* value, loraphy_cmd_response_t exp1, loraphy_cmd_response_t exp2)
 {
     LOG_DBG("prepare data\n");
-    LOG_DBG("   > phy cmd: %s\n", loraphy_commands_values[command]);
-    LOG_DBG("   > phy param: %s\n", loraphy_params_values[parameter]);
-    LOG_DBG("   > value: %s\n", value);
-    LOG_DBG("   > phy resp1: %s\n", uart_response[exp1]);
-    LOG_DBG("   > phy resp2: %s\n", uart_response[exp2]);
+    LOG_DBG("   > phy cmd:{%s}\n", loraphy_commands_values[command]);
+    LOG_DBG("   > phy param:{%s}\n", loraphy_params_values[parameter]);
+    LOG_DBG("   > value:{%s}\n", value);
+    LOG_DBG("   > phy resp1:{%s}\n", uart_response[exp1]);
+    LOG_DBG("   > phy resp2:{%s}\n", uart_response[exp2]);
     if(wait_response){
         LOG_WARN("WAIT a response -> can't send\n");
         return 1;
@@ -142,11 +158,15 @@ loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, char*
 
     const char* cmd = loraphy_commands_values[command];
     const char* param = loraphy_params_values[parameter];
-    int size = LORAPHY_PARAM_VALUE_MAX_SIZE + LORAPHY_COMMMAND_VALUE_MAX_SIZE +strlen(value);
+    //int size = LORAPHY_PARAM_VALUE_MAX_SIZE + LORAPHY_COMMMAND_VALUE_MAX_SIZE +strlen(value);
+    int size = strlen(cmd) + strlen(param) + strlen(value);
+    LOG_DBG("SIZE: %d\n", size);
     char data[size];
     sprintf(data, "%s%s%s", cmd, param, value);
     lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP1, exp1);
     lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP2, exp2);
+    lorabuf_c_clear();
     lorabuf_c_copy_from(data, size);
+    lorabuf_set_data_c_len(size);
     return 0;
 }

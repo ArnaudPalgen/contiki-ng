@@ -7,6 +7,6 @@
 int parse(char *data, int payload_len);
 
 /* Create a string of char from the lorabuf */
-int create(char* dest);
+int create(char* destination);
 
 #endif /* LORAFRAMER_H_ */

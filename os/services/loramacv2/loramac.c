@@ -247,6 +247,7 @@ loramac_root_start(void)//done
     LOG_DBG("CALL PHY INIT\n");
     loraphy_init();
     LOG_DBG("PHY INIT DONE\n");
+    process_start(&loramac_process, NULL);
     send_join_request();
 
 }
@@ -263,11 +264,11 @@ loramac_send_one(void)//done
     memcpy(&last_sent_frame, lorabuf_mac_param_ptr(), sizeof(lora_frame_hdr_t)-(2* sizeof(lora_addr_t)));
     memcpy(&last_sent_frame.src_addr, lorabuf_get_addr(LORABUF_ADDR_FIRST), 2*sizeof(lora_addr_t));
 
+    /*send packet to PHY layer*/
+    LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_DISABLE_WDT);
+
     /*create str packet un lorabuf_c*/
     create(lorabuf_c_get_buf());
-
-    /*send packet to PHY layer*/
-    LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, 0);
     LORAPHY_TX(lorabuf_c_get_buf());
 
     /*actions depending on if a response is expected or not */

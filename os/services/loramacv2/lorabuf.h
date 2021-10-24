@@ -53,6 +53,8 @@ uint8_t* lorabuf_get_buf(void);
 //int lorabuf_copy_to(const void* to);
 
 uint8_t* lorabuf_mac_param_ptr(void);
+
+void lorabuf_c_clear(void);
 /*---------------------------------------------------------------------------*/
 enum {
     /*UART attributes*/

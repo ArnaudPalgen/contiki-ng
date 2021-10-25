@@ -21,9 +21,9 @@ int
 loraaddr_compare(const lora_addr_t *addr1, const lora_addr_t *addr2)
 {
     LOG_DBG("Compare ");
-    LOG_DBG_LR_ADDR(addr1);
+    LOG_DBG_LORA_ADDR(addr1);
     LOG_DBG(" and ");
-    LOG_DBG_LR_ADDR(addr2);
+    LOG_DBG_LORA_ADDR(addr2);
     LOG_DBG(" %s\n", (memcmp(addr1, addr2, LORA_ADDR_SIZE) == 0) ? "true":"false");
     return (memcmp(addr1, addr2, LORA_ADDR_SIZE) == 0);
 }
@@ -37,14 +37,14 @@ loraaddr_set_node_addr(lora_addr_t *addr)
 void
 loraaddr_print(const lora_addr_t *addr)
 {
-    printf("%d:%d", addr->prefix, addr->id);
+    printf("%-2d:%-5d", addr->prefix, addr->id);
 }
 /*---------------------------------------------------------------------------*/
 bool
 loraaddr_is_in_dag(lora_addr_t *addr)
 {
     LOG_DBG("ADDR ");
-    LOG_DBG_LR_ADDR(addr);
+    LOG_DBG_LORA_ADDR(addr);
     LOG_DBG(" is in dag: %s\n", (addr->prefix == lora_node_addr.prefix) ? "true":"false");
     return addr->prefix == lora_node_addr.prefix;
 }

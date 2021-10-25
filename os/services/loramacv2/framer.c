@@ -93,7 +93,6 @@ create(char* destination)
     addr_p = lorabuf_get_addr(LORABUF_ADDR_SENDER);
     sprintf(addr_c, "%02X%04X", addr_p->prefix, addr_p->id);
     memcpy(dest,addr_c,6);
-    LOG_DBG("DEST WITH FIRST ADDR:{%s}\n", dest);
     dest=dest+6;
 
     /* create dest addr*/

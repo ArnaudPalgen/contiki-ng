@@ -53,7 +53,7 @@ extern const lora_addr_t lora_null_addr;
     } \
     } while (0)
 
-#define LOG_INFO_LR_ADDR(...)    LOG_LORA_ADDR(LOG_LEVEL_INFO, __VA_ARGS__)
-#define LOG_DBG_LR_ADDR(...)    LOG_LORA_ADDR(LOG_LEVEL_DBG, __VA_ARGS__)
+#define LOG_INFO_LORA_ADDR(...)    LOG_LORA_ADDR(LOG_LEVEL_INFO, __VA_ARGS__)
+#define LOG_DBG_LORA_ADDR(...)    LOG_LORA_ADDR(LOG_LEVEL_DBG, __VA_ARGS__)
 
 #endif /* LORAADDR_H_ */

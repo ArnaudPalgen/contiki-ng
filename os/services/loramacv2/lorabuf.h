@@ -21,7 +21,7 @@
 /*---------------------------------------------------------------------------*/
 typedef uint8_t lorabuf_attr_t;
 /*---------------------------------------------------------------------------*/
-void lorabuf_c_write_char(char c, int pos);
+void lorabuf_c_write_char(char c, unsigned int pos);
 
 void lorabuf_c_copy_from(const char* data, unsigned int size);
 

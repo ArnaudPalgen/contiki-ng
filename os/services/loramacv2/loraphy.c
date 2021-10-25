@@ -10,37 +10,55 @@
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #define LOG_MODULE "PHY PHY"
-#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_LEVEL LOG_LEVEL_INFO
 #define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 const char* loraphy_params_values[8]={"bw ", "cr ", "freq ", "mod ", "pwr ", "sf ", "wdt ", ""};
 const char* loraphy_commands_values[5]={"mac pause", "radio set ", "radio rx ", "radio tx ", "sys sleep "};
 const char* uart_response[8]={"ok", "invalid_param", "radio_err", "radio_rx", "busy", "radio_tx_ok", "4294967245", "none"};
-static bool wait_response = false;
+static bool ready = true;
+static void (* c)( loraphy_sent_status_t status) = NULL;
+/*---------------------------------------------------------------------------*/
+
+void
+set_notify_state(bool is_ready)
+{
+    LOG_DBG("set ready to %s\n", ready ? "true":"false");
+    ready = is_ready;
+    if(is_ready && c != NULL){
+        c(LORAPHY_SENT_DONE);
+    }
+}
 /*---------------------------------------------------------------------------*/
 void
-loraphy_input(unsigned int payload_size)
+loraphy_input()
 {
-    LOG_DBG("INPUT size %d\n", payload_size);
+    LOG_INFO("UART RX\n");
+    LOG_INFO("   > buf:{%s}\n", lorabuf_c_get_buf());
+    LOG_INFO("   > buf size:{%d}\n", lorabuf_get_data_c_len());
+
     int i = LORABUF_UART_RESP_FIRST;
     loraphy_cmd_response_t uart_resp=LORAPHY_CMD_RESPONSE_NONE;
-    LOG_DBG("wait_response:{%d}\n", wait_response);
-    
-    while(i<LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && wait_response){
-        LOG_DBG("loop i=%d\n",i);
+
+    while(i<LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && !ready){
         uart_resp = (loraphy_cmd_response_t)lorabuf_get_attr(i);
-        LOG_DBG("uart resp index: %d\n", uart_resp);
-        LOG_DBG("compare %s WITH %s\n", lorabuf_c_get_buf(), uart_response[uart_resp]);
+        LOG_DBG("compare {%s} WITH {%s}\n", lorabuf_c_get_buf(), uart_response[uart_resp]);
         if(strstr((const char*)lorabuf_c_get_buf(), uart_response[uart_resp])){
-            wait_response = false;
-            LOG_DBG("%d UART response: %s\n", __LINE__, uart_response[uart_resp]);
+            LOG_INFO("expected response\n");
+            set_notify_state(true);
         }
         i++;
+        if(i==LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && ready==false){
+            LOG_INFO("response is not the expected\n");
+        }
     }
+
     if(uart_resp == LORAPHY_CMD_RESPONSE_RADIO_RX){
-        LOG_DBG("data frame\n");
-        parse(lorabuf_c_get_buf(), payload_size);
+        LOG_DBG("UART resp is data frame\n");
+        parse(lorabuf_c_get_buf(), lorabuf_get_data_c_len());
         loramac_input();
+    }else{
+        LOG_DBG("UART resp is NOT data frame\n");
     }
 }
 /*---------------------------------------------------------------------------*/
@@ -54,22 +72,18 @@ uart_rx(unsigned char c)
     if(start){
         start=false;
         lorabuf_c_clear();
-        //lorabuf_clear();
     }
     if(c == '\r'){
         cr = true;
     }else if(c == '\n'){
         if(cr == true){
-            LOG_DBG("lorabuf_c:{%s}\n", lorabuf_c_get_buf());
-            loraphy_input((index+1));
-            lorabuf_set_data_c_len(index+1);
+            lorabuf_set_data_c_len(index);
+            loraphy_input();
             cr = false;
             start = true;
             index = 0;
         }
     }else if((int)c != 254 && (int)c != 248 && (int)c != 192 && (int)c != 240){
-        //LOG_DBG("receive char %c\n ", c);
-        //LOG_DBG("index: %d\n", index);
         lorabuf_c_write_char(c, index);
         index ++;
     }
@@ -77,15 +91,15 @@ uart_rx(unsigned char c)
 }
 /*---------------------------------------------------------------------------*/
 /*write a char* to the UART connection*/
-void write_uart(char *s, int len){
-    LOG_DBG("write UART{%s} with len=%d\n", s, len);
-    LOG_DBG("WAIT UART response\n");
-    int i=0;
-    //int max = lorabuf_get_data_c_len();
-    while(/**s != 0 && */i < len){
+void
+write_uart(char *s, int len)
+{
+    LOG_INFO("write UART{%s} with len=%d\n", s, len);
+
+    for(int i=0;i<len;i++){
         uart_write_byte(LORAPHY_UART_PORT, *s++);
-        i++;
     }
+
     uart_write_byte(LORAPHY_UART_PORT, '\r');
     uart_write_byte(LORAPHY_UART_PORT, '\n');
 }
@@ -93,49 +107,39 @@ void write_uart(char *s, int len){
 void
 loraphy_init(void)
 {
-    LOG_DBG("INIT LoRaPHY\n");
-    //UART configuration
+    LOG_INFO("INIT LoRaPHY\n");
+
+    /* UART configuration */
     uart_init(LORAPHY_UART_PORT);
     uart_set_input(LORAPHY_UART_PORT, &uart_rx);
+
+    /*SEND mac pause*/
     loraphy_prepare_data(LORAPHY_CMD_MAC_PAUSE, LORAPHY_PARAM_NONE, "", LORAPHY_CMD_RESPONSE_U_INT, LORAPHY_CMD_RESPONSE_NONE);
-    LOG_DBG("CALL PHY SEND FOR MAC PAUSE\n");
     loraphy_send();
+    RTIMER_BUSYWAIT_UNTIL(ready, RTIMER_SECOND/4);
 }
 /*---------------------------------------------------------------------------*/
-bool
-wait(void)
+void
+loraphy_set_callback(void (* callback)( loraphy_sent_status_t status))
 {
-
-    RTIMER_BUSYWAIT_UNTIL(!wait_response, RTIMER_SECOND);
-    //while(wait_response){
-    //    //LOG_DBG("h1\n");
-    //}
-    return !wait_response;
+    c = callback;
 }
 /*---------------------------------------------------------------------------*/
 int
 loraphy_send(void)
 {
-    LOG_DBG("ENTER PHY SEND\n");
-    if(wait_response){
+    LOG_DBG("phy send\n");
+    LOG_DBG("   > buf:{%s}\n", lorabuf_c_get_buf());
+    LOG_DBG("   > buf size:{%d}\n", lorabuf_get_data_c_len());
+    if(!ready){
+        LOG_WARN("impossible to send because a response is expected\n");
         return 1;
     }
     char* buf = lorabuf_c_get_buf();
-    LOG_DBG("BEFORE WRITE UART\n");
-    wait_response = true;
+    ready = false;
     write_uart(buf, lorabuf_get_data_c_len());
-    LOG_DBG("AFTER WRITE UART, BEFORE WAIT\n");
-    //while(wait_response){
-    //    wait_response =
-    //}
-    if (!wait()){
-        //todo
-        LOG_DBG("WAIT ERROR\n");
-        return 1;
-    }
-    LOG_DBG("WAIT DONE;-> PHY SEND END\n");
+    LOG_DBG("frame sended\n");
     return 0;
-
 }
 /*---------------------------------------------------------------------------*/
 int
@@ -147,16 +151,10 @@ loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, char*
     LOG_DBG("   > value:{%s}\n", value);
     LOG_DBG("   > phy resp1:{%s}\n", uart_response[exp1]);
     LOG_DBG("   > phy resp2:{%s}\n", uart_response[exp2]);
-    if(wait_response){
-        LOG_WARN("WAIT a response -> can't send\n");
-        return 1;
-    }
 
     const char* cmd = loraphy_commands_values[command];
     const char* param = loraphy_params_values[parameter];
-    //int size = LORAPHY_PARAM_VALUE_MAX_SIZE + LORAPHY_COMMMAND_VALUE_MAX_SIZE +strlen(value);
-    int size = strlen(cmd) + strlen(param) + strlen(value);
-    LOG_DBG("SIZE: %d\n", size);
+    unsigned int size = strlen(cmd) + strlen(param) + strlen(value);
     char data[size];
     sprintf(data, "%s%s%s", cmd, param, value);
     lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP1, exp1);

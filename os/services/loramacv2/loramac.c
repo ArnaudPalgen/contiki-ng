@@ -22,6 +22,7 @@ static struct ctimer query_timer;
 static process_event_t loramac_state_change_event;
 static process_event_t loramac_event_output;
 process_event_t loramac_network_joined;
+static process_event_t loramac_phy_done;
 
 /*Counters*/
 static uint8_t next_seq = 0;
@@ -234,51 +235,34 @@ send_join_request(void)//done
 }
 /*---------------------------------------------------------------------------*/
 void
-loramac_root_start(void)//done
+phy_callback(loraphy_sent_status_t status)
+{
+    //currently status is only LORAPHY_SENT_DONE
+    process_post(&loramac_process, loramac_phy_done, NULL);
+}
+/*---------------------------------------------------------------------------*/
+void
+loramac_root_start(void)
 {
     LOG_DBG("start root\n");
     state = ALONE;
     loramac_event_output = process_alloc_event();
     loramac_state_change_event = process_alloc_event();
     loramac_network_joined = process_alloc_event();
+    loramac_phy_done = process_alloc_event();
 
     lora_addr_t lora_init_node_addr = {node_id, node_id};
+    LOG_DBG("Initial node addr: ");
+    LOG_DBG_LR_ADDR(&lora_init_node_addr);
     loraaddr_set_node_addr(&lora_init_node_addr);
-    LOG_DBG("CALL PHY INIT\n");
+
+    LOG_DBG("PREPARE PHY LAYER\n");
+    loraphy_set_callback(&phy_callback);
     loraphy_init();
-    LOG_DBG("PHY INIT DONE\n");
+    LOG_DBG("PHY LAYER PREPARED\n");
     process_start(&loramac_process, NULL);
     send_join_request();
 
-}
-/*---------------------------------------------------------------------------*/
-void
-loramac_send_one(void)//done
-{
-    LOG_DBG("SEND ONE\n");
-    /*set packet seqno*/
-    lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, next_seq);
-    next_seq++;
-
-    /*copy param and addresses from buffer to last_send_frame*/
-    memcpy(&last_sent_frame, lorabuf_mac_param_ptr(), sizeof(lora_frame_hdr_t)-(2* sizeof(lora_addr_t)));
-    memcpy(&last_sent_frame.src_addr, lorabuf_get_addr(LORABUF_ADDR_FIRST), 2*sizeof(lora_addr_t));
-
-    /*send packet to PHY layer*/
-    LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_DISABLE_WDT);
-
-    /*create str packet un lorabuf_c*/
-    create(lorabuf_c_get_buf());
-    LORAPHY_TX(lorabuf_c_get_buf());
-
-    /*actions depending on if a response is expected or not */
-    if(last_sent_frame.confirmed || last_sent_frame.command == QUERY || last_sent_frame.command == JOIN){
-        ctimer_set(&retransmit_timer, LORAMAC_RETRANSMIT_TIMEOUT, on_retransmit_timeout, NULL);
-        LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);
-        LORAPHY_RX();
-    }else{
-        change_notify_state(READY);
-    }
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(loramac_process, ev, data)//done
@@ -302,9 +286,70 @@ PROCESS_THREAD(loramac_process, ev, data)//done
             pending = false;
         }
         state = WAIT_RESPONSE;
-        loramac_send_one();
+        //loramac_send_one();
+        /*---------------------------------------------------------------------------*/
+        /*---------------------------------------------------------------------------*/
+        LOG_DBG("prepare packet to be sent\n");
+        /*set packet seqno*/
+        lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, next_seq);
+        next_seq++;
+
+        /*copy param and addresses from buffer to last_send_frame*/
+        memcpy(&last_sent_frame, lorabuf_mac_param_ptr(), sizeof(lora_frame_hdr_t)-(2* sizeof(lora_addr_t)));
+        memcpy(&last_sent_frame.src_addr, lorabuf_get_addr(LORABUF_ADDR_FIRST), 2*sizeof(lora_addr_t));
+
+        /*send packet to PHY layer*/
+        LOG_DBG("set radio wdt\n");
+        LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_DISABLE_WDT);
+        PROCESS_WAIT_EVENT();
+        while (ev != loramac_phy_done){
+            PROCESS_WAIT_EVENT();
+            if(ev == loramac_event_output){
+                pending = true;
+            }
+        }
+        LOG_DBG("radio wdt DONE\n");
+
+        /*create str packet un lorabuf_c*/
+        create(lorabuf_c_get_buf());
+        LOG_DBG("PHY TX\n");
+        LORAPHY_TX(lorabuf_c_get_buf());
+        PROCESS_WAIT_EVENT();
+        while (ev != loramac_phy_done){
+            PROCESS_WAIT_EVENT();
+            if(ev == loramac_event_output){
+                pending = true;
+            }
+        }
+        LOG_DBG("PHY TX DONE\n");
+
+        /*actions depending on if a response is expected or not */
+        if(last_sent_frame.confirmed || last_sent_frame.command == QUERY || last_sent_frame.command == JOIN){
+            LOG_DBG("Frame need a response\n");
+            LOG_DBG("set radio wdt\n");
+            LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);
+            PROCESS_WAIT_EVENT();
+            while (ev != loramac_phy_done){
+                PROCESS_WAIT_EVENT();
+                if(ev == loramac_event_output){
+                    pending = true;
+                }
+            }
+            LOG_DBG("radio wdt DONE\n");
+            LORAPHY_RX();
+            LOG_DBG("phy rx done \n");
+            ctimer_set(&retransmit_timer, LORAMAC_RETRANSMIT_TIMEOUT, on_retransmit_timeout, NULL);
+            LOG_DBG("set retransmit timer done\n");
+
+        }else{
+            LOG_DBG("Frame don't need a response\n");
+            change_notify_state(READY);
+        }
+        /*---------------------------------------------------------------------------*/
+        /*---------------------------------------------------------------------------*/
 
         while(state != READY){
+            LOG_DBG(" wait state is READY\n");
             PROCESS_WAIT_EVENT();
             if(ev == loramac_state_change_event){
                 continue;
@@ -313,6 +358,7 @@ PROCESS_THREAD(loramac_process, ev, data)//done
                 pending = true;
             }
         }
+        LOG_DBG("state is ready\n");
     }
     PROCESS_END();
 }

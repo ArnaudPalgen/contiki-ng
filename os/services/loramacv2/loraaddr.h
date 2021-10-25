@@ -6,7 +6,8 @@
 /*---------------------------------------------------------------------------*/
 #define LORA_ADDR_PREFIX_SIZE 1
 #define LORA_ADDR_ID_SIZE 2
-#define LORA_ADDR_SIZE (LORA_ADDR_PREFIX_SIZE + LORA_ADDR_ID_SIZE)
+#define LORA_ADDR_PADDING_SIZE 1
+#define LORA_ADDR_SIZE (LORA_ADDR_PREFIX_SIZE + LORA_ADDR_PADDING_SIZE +LORA_ADDR_ID_SIZE)
 /*---------------------------------------------------------------------------*/
 typedef struct lora_addr{
     uint8_t prefix;
@@ -48,6 +49,7 @@ extern const lora_addr_t lora_null_addr;
 #define LOG_LORA_ADDR(level, lora_addr) do {  \
     if((level) <= (LOG_LEVEL)) { \
         loraaddr_print(lora_addr); \
+        printf("\n"); \
     } \
     } while (0)
 

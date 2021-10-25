@@ -32,9 +32,6 @@ void
 loraaddr_set_node_addr(lora_addr_t *addr)
 {
     memcpy(&lora_node_addr, addr, LORA_ADDR_SIZE);
-    LOG_INFO("new LoRa addr:");
-    LOG_INFO_LR_ADDR(&lora_node_addr);
-    printf("\n");
 }
 /*---------------------------------------------------------------------------*/
 void

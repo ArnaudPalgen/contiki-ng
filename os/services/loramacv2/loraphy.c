@@ -33,9 +33,7 @@ set_notify_state(bool is_ready)
 void
 loraphy_input()
 {
-    LOG_INFO("UART RX\n");
-    LOG_INFO("   > buf:{%s}\n", lorabuf_c_get_buf());
-    LOG_INFO("   > buf size:{%d}\n", lorabuf_get_data_c_len());
+    LOG_INFO("UART RX {%s} len=%d\n", lorabuf_c_get_buf(), lorabuf_get_data_c_len());
 
     int i = LORABUF_UART_RESP_FIRST;
     loraphy_cmd_response_t uart_resp=LORAPHY_CMD_RESPONSE_NONE;
@@ -94,7 +92,7 @@ uart_rx(unsigned char c)
 void
 write_uart(char *s, int len)
 {
-    LOG_INFO("write UART{%s} with len=%d\n", s, len);
+    LOG_INFO("write UART{%s} len=%d\n", s, len);
 
     for(int i=0;i<len;i++){
         uart_write_byte(LORAPHY_UART_PORT, *s++);
@@ -128,17 +126,15 @@ loraphy_set_callback(void (* callback)( loraphy_sent_status_t status))
 int
 loraphy_send(void)
 {
-    LOG_DBG("phy send\n");
-    LOG_DBG("   > buf:{%s}\n", lorabuf_c_get_buf());
-    LOG_DBG("   > buf size:{%d}\n", lorabuf_get_data_c_len());
+    LOG_DBG("phy send {%s} len=%d\n", lorabuf_c_get_buf(), lorabuf_get_data_c_len());
+
     if(!ready){
-        LOG_WARN("impossible to send because a response is expected\n");
+        LOG_WARN("unable to send. A response is expected\n");
         return 1;
     }
     char* buf = lorabuf_c_get_buf();
     ready = false;
     write_uart(buf, lorabuf_get_data_c_len());
-    LOG_DBG("frame sended\n");
     return 0;
 }
 /*---------------------------------------------------------------------------*/
@@ -161,7 +157,6 @@ loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, char*
     lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP2, exp2);
     lorabuf_c_clear();
     lorabuf_c_copy_from(data, size);
-    LOG_WARN("------------------- DATALEN TO %d\n", size);
     lorabuf_set_data_c_len(size);
     return 0;
 }

@@ -85,7 +85,6 @@ create(char* destination)
     char* dest = destination;
     int size = 0;
     LOG_DBG("enter create\n");
-    LOG_DBG("   > dest: %p\n", dest);
 
     char addr_c[6];
     lora_addr_t *addr_p;
@@ -138,7 +137,6 @@ create(char* destination)
     /* create payload */
     uint16_t datalen = lorabuf_get_data_len();
     if (datalen> 0){
-        LOG_DBG("FRAMER: DATA LEN: %d\n", datalen);
         if (datalen%2 !=0){
             memcpy(dest, "0", 1);
             dest = dest+1;
@@ -154,6 +152,6 @@ create(char* destination)
             size = size+2;
         }
     }
-    LOG_DBG("create finished{%s}\n", destination);
+    LOG_DBG("created frame:{%s}\n", destination);
     return size;
 }

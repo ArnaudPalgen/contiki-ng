@@ -90,20 +90,15 @@ on_retransmit_timeout(void *ptr)
     LOG_DBG("STOP retransmit timer\n");
     ctimer_stop(&retransmit_timer);
     if(retransmit_attempt < LORAMAC_MAX_RETRANSMIT){
-        LOG_DBG("retransmit\n");
-        print_lorabuf();
         LOG_DBG("copy last sent frame to lorabuf\n");
 
         //dest src size
         memcpy(lorabuf_mac_param_ptr(), &last_sent_frame, sizeof(lora_frame_hdr_t)-(2* sizeof(lora_addr_t)));
         memcpy(lorabuf_get_addr(LORABUF_ADDR_FIRST), &last_sent_frame.src_addr, 2*sizeof(lora_addr_t));
-        LOG_DBG("copied!\n");
-        print_lorabuf();
 
         retransmit_attempt ++;
 
         LOG_DBG("attempts: %d\n", retransmit_attempt);
-        LOG_DBG("send retransmit to loramac process\n");
         LOG_DBG("RESTART retransmit timer\n");
         process_post(&loramac_process, loramac_event_output, (process_data_t) true);
         ctimer_restart(&retransmit_timer);
@@ -256,8 +251,6 @@ send_join_request(void)//done
     lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
     lorabuf_set_data_len(0);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, JOIN);
-    //lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, next_seq);
-    //next_seq++;
     process_post(&loramac_process, loramac_event_output, (process_data_t) false);
 }
 /*---------------------------------------------------------------------------*/
@@ -310,17 +303,15 @@ PROCESS_THREAD(loramac_process, ev, data)
             LOG_DBG("WAIT a packet to send\n");
             PROCESS_WAIT_EVENT_UNTIL(ev == loramac_event_output);
         }else{
-            LOG_DBG("packet to send pending\n");
+            LOG_DBG("PENDING packet\n");
             pending = false;
         }
         state = WAIT_RESPONSE;
         is_retransmission = (bool) data;
         LOG_DBG("IS RETRANSMISSION: %s\n", is_retransmission ? "true":"false");
 
-        LOG_DBG("prepare packet to be sent\n");
         /*set packet seqno*/
         if(!is_retransmission){
-            LOG_DBG("not a retransmission -> update SEQNO\n");
             lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, next_seq);
             next_seq++;
 
@@ -331,7 +322,6 @@ PROCESS_THREAD(loramac_process, ev, data)
             LOG_DBG_LORA_HDR(&last_sent_frame);
 
             /*send packet to PHY layer*/
-            LOG_DBG("set radio wdt\n");
             LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_DISABLE_WDT);
             PROCESS_WAIT_EVENT();
             while (ev != loramac_phy_done){
@@ -340,9 +330,6 @@ PROCESS_THREAD(loramac_process, ev, data)
                     pending = true;
                 }
             }
-            LOG_DBG("radio wdt DONE\n");
-        }else{
-            LOG_DBG("retransmission -> dont update SEQNO\n");
         }
 
         /*create str packet to lorabuf_c*/
@@ -362,7 +349,6 @@ PROCESS_THREAD(loramac_process, ev, data)
         /*actions depending on if a response is expected or not */
         if(last_sent_frame.confirmed || last_sent_frame.command == QUERY || last_sent_frame.command == JOIN){
             LOG_DBG("Frame need a response\n");
-            LOG_DBG("set radio wdt\n");
             LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);
             PROCESS_WAIT_EVENT();
             while (ev != loramac_phy_done){
@@ -371,19 +357,15 @@ PROCESS_THREAD(loramac_process, ev, data)
                     pending = true;
                 }
             }
-            LOG_DBG("radio wdt DONE\n");
             LORAPHY_RX();
-            LOG_DBG("phy rx done \n");
+            LOG_DBG("PHY RX done \n");
+            LOG_DBG("SET retransmit timer\n");
             ctimer_set(&retransmit_timer, LORAMAC_RETRANSMIT_TIMEOUT, on_retransmit_timeout, NULL);
-            LOG_DBG("set retransmit timer done\n");
 
         }else{
             LOG_DBG("Frame don't need a response\n");
             change_notify_state(READY);
         }
-        /*---------------------------------------------------------------------------*/
-        /*---------------------------------------------------------------------------*/
-
         //while(state != READY){
         //    LOG_DBG(" wait state is READY\n");
         //    PROCESS_WAIT_EVENT();

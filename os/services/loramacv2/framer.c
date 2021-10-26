@@ -83,6 +83,7 @@ int
 create(char* destination)
 {
     char* dest = destination;
+    int size = 0;
     LOG_DBG("enter create\n");
     LOG_DBG("   > dest: %p\n", dest);
 
@@ -93,13 +94,15 @@ create(char* destination)
     addr_p = lorabuf_get_addr(LORABUF_ADDR_SENDER);
     sprintf(addr_c, "%02X%04X", addr_p->prefix, addr_p->id);
     memcpy(dest,addr_c,6);
-    dest=dest+6;
+    dest = dest+6;
+    size = size+6;
 
     /* create dest addr*/
     addr_p = lorabuf_get_addr(LORABUF_ADDR_RECEIVER);
     sprintf(addr_c, "%02X%04X", addr_p->prefix, addr_p->id);
     memcpy(dest,addr_c,6);
-    dest=dest+6;
+    dest = dest+6;
+    size = size+6;
 
     /*create flags and MAC command*/
     char flags_command[2];
@@ -122,6 +125,7 @@ create(char* destination)
     sprintf(flags_command, "%02X", f_c);
     memcpy(dest, flags_command, 2);
     dest = dest+2;
+    size = size+2;
 
     /* create SN */
     char sn[2];
@@ -129,13 +133,16 @@ create(char* destination)
     sprintf(sn, "%02X", seq);
     memcpy(dest, sn, 2);
     dest = dest+2;
+    size = size+2;
 
     /* create payload */
     uint16_t datalen = lorabuf_get_data_len();
     if (datalen> 0){
+        LOG_DBG("FRAMER: DATA LEN: %d\n", datalen);
         if (datalen%2 !=0){
             memcpy(dest, "0", 1);
             dest = dest+1;
+            size = size+1;
         }
         
         char char_byte[2];
@@ -144,8 +151,9 @@ create(char* destination)
             sprintf(char_byte,"%02X", lorabuf[i]);
             memcpy(dest, char_byte,2);
             dest = dest+2;
+            size = size+2;
         }
     }
     LOG_DBG("create finished{%s}\n", destination);
-    return 0;
+    return size;
 }

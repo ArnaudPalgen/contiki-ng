@@ -114,7 +114,7 @@ loraphy_init(void)
     uart_set_input(LORAPHY_UART_PORT, &uart_rx);
 
     /*SEND mac pause*/
-    loraphy_prepare_data(LORAPHY_CMD_MAC_PAUSE, LORAPHY_PARAM_NONE, "", LORAPHY_CMD_RESPONSE_U_INT, LORAPHY_CMD_RESPONSE_NONE);
+    loraphy_prepare_data(LORAPHY_CMD_MAC_PAUSE, LORAPHY_PARAM_NONE, "", -1,LORAPHY_CMD_RESPONSE_U_INT, LORAPHY_CMD_RESPONSE_NONE);
     loraphy_send();
     RTIMER_BUSYWAIT_UNTIL(ready, RTIMER_SECOND/4);
 }
@@ -143,7 +143,7 @@ loraphy_send(void)
 }
 /*---------------------------------------------------------------------------*/
 int
-loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, char* value, loraphy_cmd_response_t exp1, loraphy_cmd_response_t exp2)
+loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, char* value, int16_t len,loraphy_cmd_response_t exp1, loraphy_cmd_response_t exp2)
 {
     LOG_DBG("prepare data\n");
     LOG_DBG("   > phy cmd:{%s}\n", loraphy_commands_values[command]);
@@ -154,13 +154,14 @@ loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, char*
 
     const char* cmd = loraphy_commands_values[command];
     const char* param = loraphy_params_values[parameter];
-    unsigned int size = strlen(cmd) + strlen(param) + strlen(value);
+    unsigned int size = strlen(cmd) + strlen(param) + ((len > -1) ? len:strlen(value));
     char data[size];
     sprintf(data, "%s%s%s", cmd, param, value);
     lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP1, exp1);
     lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP2, exp2);
     lorabuf_c_clear();
     lorabuf_c_copy_from(data, size);
+    LOG_WARN("------------------- DATALEN TO %d\n", size);
     lorabuf_set_data_c_len(size);
     return 0;
 }

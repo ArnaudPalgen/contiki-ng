@@ -48,6 +48,7 @@ lorabuf_get_data_c_len(void)
 uint16_t
 lorabuf_set_data_c_len(uint16_t len)
 {
+    LOG_WARN("SET DATA_C LEN TO %d\n", len);
     datalen_c = len;
     return len;
 }

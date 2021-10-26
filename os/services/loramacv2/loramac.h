@@ -50,12 +50,12 @@ extern process_event_t loramac_network_joined;//the event that is used when the 
 /*---------------------------------------------------------------------------*/
 #define LOG_LORA_HDR(level, lora_hdr) do {  \
     if((level) <= (LOG_LEVEL)) { \
-        loramac_print_hdr(lora_addr); \
+        loramac_print_hdr(lora_hdr); \
         printf("\n"); \
     } \
     } while (0)
 
 #define LOG_INFO_LORA_HDR(...)    LOG_LORA_HDR(LOG_LEVEL_INFO, __VA_ARGS__)
-#define LOG_DBG_LORA_HDR(...)    LOG_LORA_HDR(LOG_LEVEL_DBG, __VA_ARGS__
+#define LOG_DBG_LORA_HDR(...)    LOG_LORA_HDR(LOG_LEVEL_DBG, __VA_ARGS__)
 
 #endif /* LORAMAC_H_ */

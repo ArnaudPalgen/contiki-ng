@@ -10,7 +10,7 @@
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #define LOG_MODULE "PHY PHY"
-#define LOG_LEVEL LOG_LEVEL_INFO
+#define LOG_LEVEL LOG_LEVEL_DBG
 #define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 const char* loraphy_params_values[8]={"bw ", "cr ", "freq ", "mod ", "pwr ", "sf ", "wdt ", ""};
@@ -66,6 +66,7 @@ uart_rx(unsigned char c)
     static bool cr = false;
     static unsigned int index = 0;
     static bool start = true;
+    //LOG_INFO("# [%c] i:%d\n", c, index);
 
     if(start){
         start=false;
@@ -73,16 +74,17 @@ uart_rx(unsigned char c)
     }
     if(c == '\r'){
         cr = true;
-    }else if(c == '\n'){
-        if(cr == true){
-            lorabuf_set_data_c_len(index);
-            loraphy_input();
-            cr = false;
-            start = true;
-            index = 0;
-        }
-    }else if((int)c != 254 && (int)c != 248 && (int)c != 192 && (int)c != 240){
+    }else if(c == '\n' && cr){
+        lorabuf_set_data_c_len(index);
+        loraphy_input();
+        cr = false;
+        start = true;
+        index = 0;
+    }else if((int)c != 254 && (int)c != 248 && c!='\n' && (int)c != 192 && (int)c != 240 && c!='\r'){
+        //todo simplify test with ascii value
         lorabuf_c_write_char(c, index);
+        //lorabuf_c_get_buf()[index++] = c;
+        //memcpy(lorabuf_c_get_buf()+index, &c, sizeof(char));
         index ++;
     }
     return 0;
@@ -106,6 +108,10 @@ void
 loraphy_init(void)
 {
     LOG_INFO("INIT LoRaPHY\n");
+
+
+    memset(lorabuf_c_get_buf(), 90, 100);
+    LOG_DBG("%s\n",lorabuf_c_get_buf());
 
     /* UART configuration */
     uart_init(LORAPHY_UART_PORT);
@@ -145,18 +151,28 @@ loraphy_prepare_data(loraphy_command_t command, loraphy_param_t parameter, char*
     LOG_DBG("   > phy cmd:{%s}\n", loraphy_commands_values[command]);
     LOG_DBG("   > phy param:{%s}\n", loraphy_params_values[parameter]);
     LOG_DBG("   > value:{%s}\n", value);
+    LOG_DBG("   > value len:{%d}\n", len);
     LOG_DBG("   > phy resp1:{%s}\n", uart_response[exp1]);
     LOG_DBG("   > phy resp2:{%s}\n", uart_response[exp2]);
 
     const char* cmd = loraphy_commands_values[command];
+    uint8_t cmd_len = strlen(cmd);
+
     const char* param = loraphy_params_values[parameter];
-    unsigned int size = strlen(cmd) + strlen(param) + ((len > -1) ? len:strlen(value));
-    char data[size];
-    sprintf(data, "%s%s%s", cmd, param, value);
+    uint8_t param_len = strlen(param);
+
+    unsigned int value_len = ((len > -1) ? len:strlen(value));
+    unsigned int total_len = cmd_len+param_len+value_len;
+    char data[total_len];
+    //sprintf(data, "%s%s%s", cmd, param, value);
+    memcpy(&data, cmd, cmd_len);
+    memcpy(&(data[cmd_len]), param, param_len);
+    memcpy(&(data[cmd_len+param_len]), value, value_len);
+
     lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP1, exp1);
     lorabuf_set_attr(LORABUF_ATTR_UART_EXP_RESP2, exp2);
     lorabuf_c_clear();
-    lorabuf_c_copy_from(data, size);
-    lorabuf_set_data_c_len(size);
+    lorabuf_c_copy_from(data, total_len);
+    lorabuf_set_data_c_len(total_len);
     return 0;
 }

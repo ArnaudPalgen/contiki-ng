@@ -85,6 +85,7 @@ create(char* destination)
     char* dest = destination;
     int size = 0;
     LOG_DBG("enter create\n");
+    //print_lorabuf();
 
     char addr_c[6];
     lora_addr_t *addr_p;

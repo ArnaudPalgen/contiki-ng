@@ -349,7 +349,8 @@ PROCESS_THREAD(loramac_process, ev, data)
         /*actions depending on if a response is expected or not */
         if(last_sent_frame.confirmed || last_sent_frame.command == QUERY || last_sent_frame.command == JOIN){
             LOG_DBG("Frame need a response\n");
-            LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);
+            //LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);
+            LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_DISABLE_WDT);
             PROCESS_WAIT_EVENT();
             while (ev != loramac_phy_done){
                 PROCESS_WAIT_EVENT();

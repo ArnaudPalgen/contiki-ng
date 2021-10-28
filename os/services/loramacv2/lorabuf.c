@@ -24,6 +24,8 @@ void
 lorabuf_c_write_char(char c, unsigned int pos)
 {
     lorabuf_c[pos] = c;
+    //LOG_DBG("LoRaBUF CCC: %s\n", lorabuf_c);
+    //LOG_DBG("---------- current process: %s\n",PROCESS_CURRENT()->name);
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -48,29 +50,34 @@ lorabuf_get_data_c_len(void)
 uint16_t
 lorabuf_set_data_c_len(uint16_t len)
 {
+    //LOG_DBG("SET C BUFFER LEN\n");
     datalen_c = len;
+    //LOG_DBG("C BUFFER LEN = %d\n", datalen_c);
     return len;
 }
 /*---------------------------------------------------------------------------*/
 void
 lorabuf_clear(void)
 {
-    LOG_DBG("CLEAR BUFFER\n");
+    //LOG_DBG("CLEAR BUFFER\n");
     datalen = 0;
+    //LOG_DBG("BUFFER LEN (DATA) = %d\n", datalen);
     memset(lorabuf_attrs, 0, sizeof(lorabuf_attrs));
 }
 
 void
 lorabuf_c_clear(void)
 {
-    LOG_DBG("CLEAR C_BUFFER\n");
+    //LOG_DBG("CLEAR C_BUFFER\n");
     datalen_c = 0;
+    //LOG_DBG("C BUFFER LEN = %d\n", datalen_c);
 }
 /*---------------------------------------------------------------------------*/
 void
 lorabuf_set_data_len(uint16_t len)
 {
     datalen = len;
+    //LOG_DBG("BUFFER LEN (DATA) = %d\n", datalen);
 }
 /*---------------------------------------------------------------------------*/
 uint16_t
@@ -82,10 +89,14 @@ lorabuf_get_data_len(void)
 int
 lorabuf_copy_from(const void* from, uint16_t len)
 {
+    //LOG_DBG("COPY DATA to BUFFER\n");
+    //LOG_DBG("   > desired len: %d\n", len);
     uint16_t l;
     l = MIN(LORA_PAYLOAD_BYTE_MAX_SIZE, len);
+    //LOG_DBG("   > received len: %d\n", l);
     memcpy(lorabuf, from, l);
     datalen = l;
+    //LOG_DBG("BUFFER LEN (DATA) = %d\n", datalen);
     return l;
 }
 /*---------------------------------------------------------------------------*/
@@ -117,7 +128,6 @@ lorabuf_get_addr(uint8_t type)
 void
 print_lorabuf(void)
 {
-    //printf("LoRaBUF print function not implemented\n");//todo
     printf("\n|___________________________________________|\n");
     printf("|               lorabuf_attrs               |\n");
     printf("|-------------------------------------------|\n");
@@ -126,6 +136,7 @@ print_lorabuf(void)
     for(int i=0;i<LORABUF_NUM_ATTRS;i++){
         printf("| %-30s | %-8d |\n",lorabuf_field[i], lorabuf_attrs[i]);
     }
+    printf("| %-30s | %-8d |\n","DATA LEN", datalen);
     printf("|-------------- lorabuf_addrs --------------|\n");
     printf("| %-30s | ", "LORABUF_ADDR_SENDER");
     loraaddr_print(lorabuf_get_addr(LORABUF_ADDR_SENDER));

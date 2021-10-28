@@ -4,7 +4,7 @@
 #include "contiki.h"
 
 /* Parse the received data to a LoRaMAC frame in the lorabuf */
-int parse(char *data, int payload_len);
+int parse(char *data, int len);
 
 /* Create a string of char from the lorabuf */
 int create(char* destination);

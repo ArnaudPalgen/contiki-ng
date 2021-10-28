@@ -1,3 +1,19 @@
+/*
+ * Framer for LoRaMAC frames.
+ * The format of a LoRaMAC frame is the following (size in bits):
+ *
+ * |<---24---->|<----24--->|<-1->|<-1-->|<---2--->|<--4--->|<--8--->|<(2040-64=1976)>|
+ * | src addr  | dest addr |  k  | next | reserved|command |  seq   |     payload    |
+ *
+ * Attributes:
+ *     src_addr: The source address
+ *     dest_addr: The Destination address
+ *     command: The MAC command
+ *     payload: The payload. Must be a string in hexadecimal
+ *     seq: The sequence number
+ *     k: true if the frame need an ACK, false otherwise
+ *     has_next: true if another frame follows it, false otherwise. Only used for downward traffic
+ */
 #include <stdlib.h>
 #include "lorabuf.h"
 #include "framer.h"
@@ -11,11 +27,20 @@
 #define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 int
-parse(char *data, int payload_len)
+parse(char *data, int len)
 {
+    /*
+     * todo
+     * 10 is the len of 'radio rx '
+     * define a macro somewhere instead of hardcoded 10
+     */
+    int increment = 10;
+    //data=data+10;
+    len -= 10;
     LOG_DBG("enter parse\n");
-    LOG_DBG("   > data: %s\n", data);
-    LOG_DBG("   > payload_len: %d\n", payload_len);
+    LOG_DBG("   > data:{%s}\n", data+increment);
+    LOG_DBG("   > len: %d\n", len);
+    LOG_DBG("BUF: %s\n", lorabuf_c_get_buf());
 
     char prefix_c[2];
     uint8_t prefix;
@@ -24,33 +49,41 @@ parse(char *data, int payload_len)
     uint16_t id;
 
     /*extract src addr*/
-    memcpy(prefix_c, data, 2);
-    data = data+2;
-    memcpy(id_c, data, 4);
-    data = data+4;
+    memcpy(prefix_c, data+increment, 2);
+    increment += 2;
+    memcpy(id_c, data+increment, 4);
+    increment += 4;
+    //LOG_DBG("src addr char[%s:%s]\n", prefix_c, id_c);
 
     prefix = (uint8_t) strtol(prefix_c, NULL, 16);
     id = (uint16_t) strtol(id_c, NULL, 16);
 
     lora_addr_t addr = {prefix, id};
+    //LOG_DBG("src addr: ");
+    //LOG_DBG_LORA_ADDR(&addr);
+
     lorabuf_set_addr(LORABUF_ADDR_SENDER, &addr);
 
     /*extract dest addr*/
-    memcpy(prefix_c, data, 2);
-    data = data+2;
-    memcpy(id_c, data, 4);
-    data = data+4;
+    memcpy(prefix_c, data+increment, 2);
+    increment = increment+2;
+    memcpy(id_c, data+increment, 4);
+    increment +=4;
+    //LOG_DBG("dest addr char[%s:%s]\n", prefix_c, id_c);
 
     prefix = (uint8_t) strtol(prefix_c, NULL, 16);
     id = (uint16_t) strtol(id_c, NULL, 16);
 
     lora_addr_t addr2 = {prefix, id};
+    //LOG_DBG("dest addr: ");
+    //LOG_DBG_LORA_ADDR(&addr2);
     lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &addr2);
 
     /*extact flags and command*/
     char cmd[2];
-    memcpy(cmd, data, 2);
-    data = data+2;
+    memcpy(cmd, data+increment, 2);
+    increment += 2;
+    LOG_DBG("FLAGS AND COMMAND: %s\n", cmd);
     uint8_t i_cmd = (uint8_t)strtol(cmd, NULL, 16);
 
     uint8_t flag_filter = 0x01;
@@ -60,22 +93,43 @@ parse(char *data, int payload_len)
     bool next = (bool)((i_cmd >> 6) & flag_filter);
     
     loramac_command_t command = (uint8_t)( i_cmd & command_filter );
+    LOG_DBG("COMMAND: %d\n", command);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, command);
     lorabuf_set_attr(LORABUF_ATTR_MAC_NEXT, next);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CONFIRMED, k);
 
     /* extract SN */
     char sn_c[2];
-    memcpy(sn_c, data, 2);
-    data = data+2;
+    memcpy(sn_c, data+increment, 2);
+    increment += 2;
     uint8_t sn = (uint8_t)strtol(sn_c, NULL, 16);
     lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, sn);
 
     /*extract payload*/
     // todo review
-    lorabuf_set_data_len(payload_len);
-    lorabuf_copy_from(data, payload_len);
-    LOG_DBG("parse finished\n");
+    //uint8_t//
+    //lorabuf_set_data_len(len);
+    //lorabuf_copy_from(data, len);
+    //LOG_DBG("parse finished\n");
+    //LOG_DBG("PAYLOAD LEN = %d\n",len-increment);
+    int payload_size = 0;
+    char current_byte_c[2];
+    uint8_t current_byte = 0;
+    LOG_DBG("increment: %d\n", increment);
+    LOG_DBG("len: %d\n", len);
+    while((increment-10)<len){
+        //memcpy(payload_size, data+increment, 2);
+        //lorabuf_get_buf()
+        //strtol(cmd, NULL, 16);
+        memcpy(current_byte_c, data+increment, 2);
+        current_byte = (uint8_t)strtol(current_byte_c, NULL, 16);
+        LOG_DBG("Current byte: %d\n", current_byte);
+        memcpy(lorabuf_get_buf()+payload_size, &current_byte, 1);
+        payload_size+=1;
+        increment = increment+2;
+
+    }
+    lorabuf_set_data_len(payload_size);
     return 0;
 }
 /*---------------------------------------------------------------------------*/

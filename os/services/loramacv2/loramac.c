@@ -120,10 +120,10 @@ void
 on_join_response(void)
 {
     LOG_DBG("ON JOIN_RESPONSE\n");
-    LOG_DBG("   > datalen: %d\n (expected 1)", lorabuf_get_data_len());
-    LOG_DBG("   > seqno: %d\n (expected 0)", lorabuf_get_attr(LORABUF_ATTR_MAC_SEQNO));
+    LOG_DBG("   > datalen: %d (expected 1)\n", lorabuf_get_data_len());
+    LOG_DBG("   > seqno: %d (expected 0)\n", lorabuf_get_attr(LORABUF_ATTR_MAC_SEQNO));
     if( state == ALONE &&
-        loraaddr_compare(lorabuf_get_addr(LORABUF_ADDR_RECEIVER), &lora_node_addr)==0 &&
+        loraaddr_compare(lorabuf_get_addr(LORABUF_ADDR_RECEIVER), &lora_node_addr) &&
         lorabuf_get_data_len()==1 &&
         lorabuf_get_attr(LORABUF_ATTR_MAC_SEQNO)==0)
     {
@@ -131,10 +131,16 @@ on_join_response(void)
         retransmit_attempt = 0;
         ctimer_stop(&retransmit_timer);
 
+        //lora_addr_t new_addr;
+        ////lorabuf_copy_to(&new_addr.prefix);
+        //loraaddr_copy(&new_addr, &lora_node_addr);
+        //new_addr.id = node_id;
+        //loraaddr_set_node_addr(&new_addr);
         lora_addr_t new_addr;
-        //lorabuf_copy_to(&new_addr.prefix);
-        loraaddr_copy(&new_addr, &lora_node_addr);
         new_addr.id = node_id;
+        memcpy(&(new_addr.prefix), lorabuf_get_buf(), 2);
+        LOG_DBG("New ADDR:\n");
+        LOG_DBG_LORA_ADDR(&new_addr);
         loraaddr_set_node_addr(&new_addr);
 
         LOG_DBG("START query timer\n");
@@ -213,6 +219,7 @@ int
 loramac_input(void)
 {
     LOG_DBG("LORAMAC INPUT\n");
+    print_lorabuf();
     lora_addr_t *dest_addr = lorabuf_get_addr(LORABUF_ADDR_RECEIVER);
     LOG_DBG("   > dest addr:");
     LOG_DBG_LORA_ADDR(dest_addr);
@@ -306,7 +313,7 @@ PROCESS_THREAD(loramac_process, ev, data)
             LOG_DBG("PENDING packet\n");
             pending = false;
         }
-        state = WAIT_RESPONSE;
+
         is_retransmission = (bool) data;
         LOG_DBG("IS RETRANSMISSION: %s\n", is_retransmission ? "true":"false");
 
@@ -332,6 +339,10 @@ PROCESS_THREAD(loramac_process, ev, data)
             }
         }
 
+        if(last_sent_frame.command != JOIN){
+            state = WAIT_RESPONSE;
+        }
+
         /*create str packet to lorabuf_c*/
         int size = create(lorabuf_c_get_buf());
         lorabuf_set_data_c_len(size);
@@ -349,8 +360,8 @@ PROCESS_THREAD(loramac_process, ev, data)
         /*actions depending on if a response is expected or not */
         if(last_sent_frame.confirmed || last_sent_frame.command == QUERY || last_sent_frame.command == JOIN){
             LOG_DBG("Frame need a response\n");
-            //LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);
-            LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_DISABLE_WDT);
+            LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);
+            //LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_DISABLE_WDT);
             PROCESS_WAIT_EVENT();
             while (ev != loramac_phy_done){
                 PROCESS_WAIT_EVENT();

@@ -104,6 +104,8 @@ void
 lorabuf_set_attr(uint8_t type, lorabuf_attr_t val)
 {
     lorabuf_attrs[type] = val;
+    //LOG_DBG("SET attr %s to %d\n",lorabuf_field[type], val);
+    //printf("RESULT: %s=%d\n",lorabuf_field[type], lorabuf_attrs[type]);
 }
 /*---------------------------------------------------------------------------*/
 lorabuf_attr_t

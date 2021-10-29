@@ -104,7 +104,7 @@
 #define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_CONF_OUTPUT_PREFIX(level, levelstr, module)
 #else /* LOG_CONF_OUTPUT_PREFIX */
 //#define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_OUTPUT("[%lu: %-4s: %-10s] ", clock_seconds(), levelstr, module)
-#define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_OUTPUT("%-4lu | %-4s | %-15s:%-4d - ", clock_seconds(), levelstr, __FILENAME__, __LINE__)
+#define LOG_OUTPUT_PREFIX(level, levelstr, module) LOG_OUTPUT("%-4lu | %-4s | %-3d:%-15s | ", clock_seconds(), levelstr, __LINE__, __FILENAME__)
 #endif /* LOG_CONF_OUTPUT_PREFIX */
 
 /******************************************************************************/

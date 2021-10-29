@@ -24,8 +24,11 @@ loraaddr_compare(const lora_addr_t *addr1, const lora_addr_t *addr2)
     LOG_DBG_LORA_ADDR(addr1);
     LOG_DBG(" and ");
     LOG_DBG_LORA_ADDR(addr2);
-    LOG_DBG(" %s\n", (memcmp(addr1, addr2, LORA_ADDR_SIZE) == 0) ? "true":"false");
-    return (memcmp(addr1, addr2, LORA_ADDR_SIZE) == 0);
+    bool r = ((addr1->prefix == addr2->prefix) && (addr1->id == addr2->id));
+    //LOG_DBG(" %s\n", (memcmp(addr1, addr2, LORA_ADDR_SIZE) == 0) ? "true":"false");
+    //return (memcmp(addr1, addr2, LORA_ADDR_SIZE) == 0);
+    LOG_DBG("addresses are equal: %s\n", r ? "true":"false");
+    return r;
 }
 /*---------------------------------------------------------------------------*/
 void

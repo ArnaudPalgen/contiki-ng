@@ -37,10 +37,9 @@ parse(char *data, int len)
     int increment = 10;
     //data=data+10;
     len -= 10;
-    LOG_DBG("enter parse\n");
+    LOG_DBG("<parse>\n");
     LOG_DBG("   > data:{%s}\n", data+increment);
     LOG_DBG("   > len: %d\n", len);
-    LOG_DBG("BUF: %s\n", lorabuf_c_get_buf());
 
     char prefix_c[2];
     uint8_t prefix;
@@ -53,14 +52,14 @@ parse(char *data, int len)
     increment += 2;
     memcpy(id_c, data+increment, 4);
     increment += 4;
-    //LOG_DBG("src addr char[%s:%s]\n", prefix_c, id_c);
+    LOG_DBG("   - src addr char[%s:%s]\n", prefix_c, id_c);
 
     prefix = (uint8_t) strtol(prefix_c, NULL, 16);
     id = (uint16_t) strtol(id_c, NULL, 16);
 
     lora_addr_t addr = {prefix, id};
-    //LOG_DBG("src addr: ");
-    //LOG_DBG_LORA_ADDR(&addr);
+    LOG_DBG("   - created src addr: ");
+    LOG_DBG_LORA_ADDR(&addr);
 
     lorabuf_set_addr(LORABUF_ADDR_SENDER, &addr);
 
@@ -69,21 +68,17 @@ parse(char *data, int len)
     increment = increment+2;
     memcpy(id_c, data+increment, 4);
     increment +=4;
-    //LOG_DBG("dest addr char[%s:%s]\n", prefix_c, id_c);
 
     prefix = (uint8_t) strtol(prefix_c, NULL, 16);
     id = (uint16_t) strtol(id_c, NULL, 16);
 
     lora_addr_t addr2 = {prefix, id};
-    //LOG_DBG("dest addr: ");
-    //LOG_DBG_LORA_ADDR(&addr2);
     lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &addr2);
 
     /*extact flags and command*/
     char cmd[2];
     memcpy(cmd, data+increment, 2);
     increment += 2;
-    LOG_DBG("FLAGS AND COMMAND: %s\n", cmd);
     uint8_t i_cmd = (uint8_t)strtol(cmd, NULL, 16);
 
     uint8_t flag_filter = 0x01;
@@ -93,7 +88,6 @@ parse(char *data, int len)
     bool next = (bool)((i_cmd >> 6) & flag_filter);
     
     loramac_command_t command = (uint8_t)( i_cmd & command_filter );
-    LOG_DBG("COMMAND: %d\n", command);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, command);
     lorabuf_set_attr(LORABUF_ATTR_MAC_NEXT, next);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CONFIRMED, k);
@@ -115,15 +109,13 @@ parse(char *data, int len)
     int payload_size = 0;
     char current_byte_c[2];
     uint8_t current_byte = 0;
-    LOG_DBG("increment: %d\n", increment);
-    LOG_DBG("len: %d\n", len);
+
     while((increment-10)<len){
         //memcpy(payload_size, data+increment, 2);
         //lorabuf_get_buf()
         //strtol(cmd, NULL, 16);
         memcpy(current_byte_c, data+increment, 2);
         current_byte = (uint8_t)strtol(current_byte_c, NULL, 16);
-        LOG_DBG("Current byte: %d\n", current_byte);
         memcpy(lorabuf_get_buf()+payload_size, &current_byte, 1);
         payload_size+=1;
         increment = increment+2;

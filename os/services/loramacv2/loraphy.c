@@ -10,7 +10,7 @@
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #define LOG_MODULE "PHY PHY"
-#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_LEVEL LOG_LEVEL_INFO
 #define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 const char* loraphy_params_values[8]={"bw ", "cr ", "freq ", "mod ", "pwr ", "sf ", "wdt ", ""};
@@ -42,12 +42,12 @@ loraphy_input()
         uart_resp = (loraphy_cmd_response_t)lorabuf_get_attr(i);
         LOG_DBG("compare {%s} WITH {%s}\n", lorabuf_c_get_buf(), uart_response[uart_resp]);
         if(strstr((const char*)lorabuf_c_get_buf(), uart_response[uart_resp])){
-            LOG_INFO("expected response\n");
+            LOG_INFO("  - expected response\n");
             set_notify_state(true);
         }
         i++;
         if(i==LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && ready==false){
-            LOG_INFO("response is not the expected\n");
+            LOG_INFO("  - response is not the expected\n");
         }
     }
 
@@ -110,8 +110,8 @@ loraphy_init(void)
     LOG_INFO("INIT LoRaPHY\n");
 
 
-    memset(lorabuf_c_get_buf(), 90, 100);
-    LOG_DBG("%s\n",lorabuf_c_get_buf());
+    //memset(lorabuf_c_get_buf(), 90, 100);
+    //LOG_DBG("%s\n",lorabuf_c_get_buf());
 
     /* UART configuration */
     uart_init(LORAPHY_UART_PORT);

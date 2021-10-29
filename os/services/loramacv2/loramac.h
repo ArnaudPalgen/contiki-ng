@@ -5,7 +5,7 @@
 #include "loraaddr.h"
 #include "sys/rtimer.h"
 /*---------------------------------------------------------------------------*/
-#define LORAMAC_QUERY_TIMEOUT 60000 //todo
+#define LORAMAC_QUERY_TIMEOUT (15*CLOCK_SECOND)
 #define LORAMAC_MAX_RETRANSMIT 3
 #define LORAMAC_RETRANSMIT_TIMEOUT (CLOCK_SECOND*15) //todo
 #define LORAMAC_RETRANSMIT_TIMEOUT_c "15000"//ms

@@ -31,8 +31,8 @@ static uint8_t expected_seq = 0;
 static uint8_t retransmit_attempt=0;
 
 static lora_frame_hdr_t last_sent_frame;
-//static uint16_t last_sent_datalen;
-//static uint8_t last_sent_data[LORA_PAYLOAD_BYTE_MAX_SIZE];
+static uint16_t last_sent_datalen;
+static uint8_t last_sent_data[LORA_PAYLOAD_BYTE_MAX_SIZE];
 
 PROCESS(loramac_process, "LoRa-MAC process");
 
@@ -52,8 +52,7 @@ loramac_print_hdr(lora_frame_hdr_t *hdr)
 void
 change_notify_state(loramac_state_t new_state)
 {
-    LOG_DBG("STATE %s -> %s\n", mac_states_str[state], mac_states_str[new_state]);
-    LOG_DBG("notify new state\n");
+    LOG_DBG("<change_notify_state> STATE %s -> %s | NOTIFY\n", mac_states_str[state], mac_states_str[new_state]);
     state = new_state;
     process_post(&loramac_process, loramac_state_change_event, NULL);
 }
@@ -62,7 +61,7 @@ void
 loramac_send(void)
 {
     if(state == READY){
-        LOG_DBG("post loramac_event_output to loramac_process\n");
+        LOG_DBG("<loramac_send> post loramac_event_output to loramac_process\n");
         process_post(&loramac_process, loramac_event_output, (process_data_t) false);
     }
 }
@@ -71,42 +70,47 @@ loramac_send(void)
 void
 on_query_timeout(void *ptr)
 {
-    LOG_DBG("TIMEOUT query\n");
-    LOG_DBG("STOP query timer\n");
+    LOG_DBG("<on_query_timeout> TIMEOUT query\n");
+    LOG_DBG("   - STOP query timer\n");
     ctimer_stop(&query_timer);
     lorabuf_set_addr(LORABUF_ADDR_SENDER, &lora_node_addr);
     lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
     lorabuf_set_data_len(0);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, QUERY);
-    lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, next_seq);
-    next_seq++;
+    //lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, next_seq);
+    //next_seq++;
     loramac_send();
+    LOG_DBG("   - RESTART query timer\n");
+    ctimer_restart(&query_timer);
 }
 /*---------------------------------------------------------------------------*/
 void
 on_retransmit_timeout(void *ptr)
 {
-    LOG_DBG("TIMEOUT retransmit\n");
-    LOG_DBG("STOP retransmit timer\n");
+    LOG_DBG("<on_retransmit_timeout> TIMEOUT retransmit\n");
+    LOG_DBG("   - STOP retransmit timer\n");
     ctimer_stop(&retransmit_timer);
     if(retransmit_attempt < LORAMAC_MAX_RETRANSMIT){
-        LOG_DBG("copy last sent frame to lorabuf\n");
+        LOG_DBG("   - copy last sent frame to lorabuf\n");
 
-        //dest src size
+        //copy last sent frame data to the buffer
+        lorabuf_clear();
         memcpy(lorabuf_mac_param_ptr(), &last_sent_frame, sizeof(lora_frame_hdr_t)-(2* sizeof(lora_addr_t)));
         memcpy(lorabuf_get_addr(LORABUF_ADDR_FIRST), &last_sent_frame.src_addr, 2*sizeof(lora_addr_t));
+        memcpy(lorabuf_get_buf(), &last_sent_data, last_sent_datalen);
+        lorabuf_set_data_len(last_sent_datalen);
 
         retransmit_attempt ++;
 
-        LOG_DBG("attempts: %d\n", retransmit_attempt);
-        LOG_DBG("RESTART retransmit timer\n");
+        LOG_DBG("   - attempts: %d\n", retransmit_attempt);
+        LOG_DBG("   - RESTART retransmit timer\n");
         process_post(&loramac_process, loramac_event_output, (process_data_t) true);
         ctimer_restart(&retransmit_timer);
     }else{
         retransmit_attempt = 0;
         LOG_WARN("sending failed\n");
         if(last_sent_frame.command == JOIN){
-            LOG_DBG("for join -> sleep Lora radio during %s\n",LORAMAC_JOIN_SLEEP_TIME_c);
+            LOG_DBG("   - for join -> sleep Lora radio during %s\n",LORAMAC_JOIN_SLEEP_TIME_c);
             LORAPHY_SLEEP(LORAMAC_JOIN_SLEEP_TIME_c);
             ctimer_restart(&retransmit_timer);
         }else{
@@ -115,11 +119,10 @@ on_retransmit_timeout(void *ptr)
     }
 }
 /*---------------------------------------------------------------------------*/
-//review test it
 void
 on_join_response(void)
 {
-    LOG_DBG("ON JOIN_RESPONSE\n");
+    LOG_DBG("<on_join_response>\n");
     LOG_DBG("   > datalen: %d (expected 1)\n", lorabuf_get_data_len());
     LOG_DBG("   > seqno: %d (expected 0)\n", lorabuf_get_attr(LORABUF_ATTR_MAC_SEQNO));
     if( state == ALONE &&
@@ -127,23 +130,18 @@ on_join_response(void)
         lorabuf_get_data_len()==1 &&
         lorabuf_get_attr(LORABUF_ATTR_MAC_SEQNO)==0)
     {
-        LOG_DBG("STOP retransmit timer\n");
+        LOG_DBG("   - STOP retransmit timer\n");
         retransmit_attempt = 0;
         ctimer_stop(&retransmit_timer);
 
-        //lora_addr_t new_addr;
-        ////lorabuf_copy_to(&new_addr.prefix);
-        //loraaddr_copy(&new_addr, &lora_node_addr);
-        //new_addr.id = node_id;
-        //loraaddr_set_node_addr(&new_addr);
         lora_addr_t new_addr;
         new_addr.id = node_id;
         memcpy(&(new_addr.prefix), lorabuf_get_buf(), 2);
-        LOG_DBG("New ADDR:\n");
+        LOG_DBG("   - New ADDR: ");
         LOG_DBG_LORA_ADDR(&new_addr);
         loraaddr_set_node_addr(&new_addr);
 
-        LOG_DBG("START query timer\n");
+        LOG_DBG("   - START query timer\n");
         ctimer_set(&query_timer, LORAMAC_QUERY_TIMEOUT, on_query_timeout, NULL);
         expected_seq ++;
 
@@ -159,11 +157,11 @@ on_join_response(void)
 void
 on_data(void)
 {
-    LOG_DBG("ON DATA\n");
+    LOG_DBG("<on_data>\n");
     uint8_t seq = lorabuf_get_attr(LORABUF_ATTR_MAC_SEQNO);
     LOG_DBG("   > seqno: %d (expected %d)\n", seq, expected_seq);
     if(seq < expected_seq){
-        LOG_INFO("seqno smaller than expected");
+        LOG_INFO("seqno of data packet smaller than expected");
         return;
     }
     ctimer_stop(&retransmit_timer);
@@ -175,56 +173,54 @@ on_data(void)
     expected_seq = seq+1;
     bridge_input();
     if(lorabuf_get_attr(LORABUF_ATTR_MAC_NEXT)){
-        LOG_DBG("has next: true\n");
-        LOG_DBG("listen\n");
+        LOG_DBG("   - has next: true\n");
+        LOG_DBG("   - listen\n");
         LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);
         LORAPHY_RX();
-        LOG_DBG("RESTART retransmit timer\n");
+        LOG_DBG("   - RESTART retransmit timer\n");
         ctimer_restart(&retransmit_timer);
     }else{
-        LOG_DBG("RESTART query timer\n");
+        LOG_DBG("   - RESTART query timer\n");
         ctimer_restart(&query_timer);
         change_notify_state(READY);
     }
 }
 /*---------------------------------------------------------------------------*/
-//review test it
 void
 on_ack(void)
 {
-    LOG_DBG("ON ACK\n");
+    LOG_DBG("<on_ack>\n");
     uint8_t seq = lorabuf_get_attr(LORABUF_ATTR_MAC_SEQNO);
     LOG_DBG("   > seqno: %d (expected %d)\n", seq, last_sent_frame.seqno);
     if(seq != last_sent_frame.seqno){
         LOG_WARN("Incorrect ACK SN:\n  expected:%d actual:%d", last_sent_frame.seqno, seq);
         return;
     }
-    if (loraaddr_compare(&lora_root_addr, lorabuf_get_addr(LORABUF_ADDR_RECEIVER))!=0){
-        LOG_WARN("ACK not for root\n");
+    if (!loraaddr_compare(&lora_node_addr, lorabuf_get_addr(LORABUF_ADDR_RECEIVER))){
+        LOG_WARN("ACK not for me\n");
         return;
     }
-    LOG_DBG("STOP retransmit timer\n");
+    LOG_DBG("   - STOP retransmit timer\n");
     ctimer_stop(&retransmit_timer);
     retransmit_attempt = 0;
     if(last_sent_frame.command == QUERY){
-        LOG_DBG("ACK is the response of a query\n");
-        LOG_DBG("RESTART query timer\n");
+        LOG_DBG("   - ACK is the response of a query\n");
+        LOG_DBG("   - RESTART query timer\n");
         ctimer_restart(&query_timer);
     }
     change_notify_state(READY);
 }
 /*---------------------------------------------------------------------------*/
-//review test it
 int
 loramac_input(void)
 {
-    LOG_DBG("LORAMAC INPUT\n");
+    LOG_DBG("<loramac_input>\n");
     print_lorabuf();
     lora_addr_t *dest_addr = lorabuf_get_addr(LORABUF_ADDR_RECEIVER);
-    LOG_DBG("   > dest addr:");
+    LOG_DBG("   > dest addr: ");
     LOG_DBG_LORA_ADDR(dest_addr);
     if(! loraaddr_is_in_dag(dest_addr)){
-        LOG_INFO("Trame is not for this DAG\n");
+        LOG_INFO("input frame is not for this DAG\n");
         return 0;
     }
     loramac_command_t command = lorabuf_get_attr(LORABUF_ATTR_MAC_CMD);
@@ -253,7 +249,7 @@ loramac_input(void)
 void
 send_join_request(void)//done
 {
-    LOG_DBG("send join request\n");
+    LOG_DBG("<send_join_request>\n");
     lorabuf_set_addr(LORABUF_ADDR_SENDER, &lora_node_addr);
     lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
     lorabuf_set_data_len(0);
@@ -322,9 +318,12 @@ PROCESS_THREAD(loramac_process, ev, data)
             lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, next_seq);
             next_seq++;
 
-            /*copy param and addresses from buffer to last_send_frame*/
+            /*copy packet from buffer to last_send_frame*/
             memcpy(&last_sent_frame, lorabuf_mac_param_ptr(), sizeof(lora_frame_hdr_t)-(2* sizeof(lora_addr_t)));
             memcpy(&last_sent_frame.src_addr, lorabuf_get_addr(LORABUF_ADDR_FIRST), 2*sizeof(lora_addr_t));
+            last_sent_datalen = lorabuf_get_data_len();
+            memcpy(&last_sent_data, lorabuf_get_buf(), last_sent_datalen);
+
             LOG_DBG("SAVED LAST FRAME:\n");
             LOG_DBG_LORA_HDR(&last_sent_frame);
 
@@ -344,6 +343,7 @@ PROCESS_THREAD(loramac_process, ev, data)
         }
 
         /*create str packet to lorabuf_c*/
+        lorabuf_c_clear();
         int size = create(lorabuf_c_get_buf());
         lorabuf_set_data_c_len(size);
         LOG_DBG("PHY TX\n");

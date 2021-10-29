@@ -60,10 +60,14 @@ change_notify_state(loramac_state_t new_state)
 void
 loramac_send(void)
 {
-    if(state == READY){
-        LOG_DBG("<loramac_send> post loramac_event_output to loramac_process\n");
-        process_post(&loramac_process, loramac_event_output, (process_data_t) false);
-    }
+    //if(state == READY){
+    //    LOG_DBG("<loramac_send> post loramac_event_output to loramac_process\n");
+    //    process_post(&loramac_process, loramac_event_output, (process_data_t) false);
+    //}
+
+    lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, DATA);
+    lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
+    process_post(&loramac_process, loramac_event_output, (process_data_t) false);
 }
 /*---------------------------------------------------------------------------*/
 //review test it
@@ -79,7 +83,8 @@ on_query_timeout(void *ptr)
     lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, QUERY);
     //lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, next_seq);
     //next_seq++;
-    loramac_send();
+    //loramac_send();
+    process_post(&loramac_process, loramac_event_output, (process_data_t) false);
     LOG_DBG("   - RESTART query timer\n");
     ctimer_restart(&query_timer);
 }
@@ -172,6 +177,7 @@ on_data(void)
     }
     expected_seq = seq+1;
     bridge_input();
+    LOG_DBG("call to bridge ended\n");
     if(lorabuf_get_attr(LORABUF_ATTR_MAC_NEXT)){
         LOG_DBG("   - has next: true\n");
         LOG_DBG("   - listen\n");

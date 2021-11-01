@@ -18,17 +18,7 @@ const char* loraphy_commands_values[5]={"mac pause", "radio set ", "radio rx ", 
 const char* uart_response[8]={"ok", "invalid_param", "radio_err", "radio_rx", "busy", "radio_tx_ok", "4294967245", "none"};
 static bool ready = true;
 static void (* c)( loraphy_sent_status_t status) = NULL;
-/*---------------------------------------------------------------------------*/
-
-void
-set_notify_state(bool is_ready)
-{
-    LOG_DBG("set ready to %s\n", ready ? "true":"false");
-    ready = is_ready;
-    if(is_ready && c != NULL){
-        c(LORAPHY_SENT_DONE);
-    }
-}
+//static char* loraphy_radio_params_values[LORAPHY_NUM_RADIO_PARAM];
 /*---------------------------------------------------------------------------*/
 void
 loraphy_input()
@@ -42,21 +32,15 @@ loraphy_input()
         uart_resp = (loraphy_cmd_response_t)lorabuf_get_attr(i);
         LOG_DBG("compare {%s} WITH {%s}\n", lorabuf_c_get_buf(), uart_response[uart_resp]);
         if(strstr((const char*)lorabuf_c_get_buf(), uart_response[uart_resp])){
-            LOG_INFO("  - expected response\n");
-            set_notify_state(true);
+            LOG_INFO("  expected response\n");
+            ready = true;
         }
         i++;
-        if(i==LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && ready==false){
-            LOG_INFO("  - response is not the expected\n");
-        }
     }
-
-    if(uart_resp == LORAPHY_CMD_RESPONSE_RADIO_RX){
-        LOG_DBG("UART resp is data frame\n");
-        parse(lorabuf_c_get_buf(), lorabuf_get_data_c_len());
-        loramac_input();
-    }else{
-        LOG_DBG("UART resp is NOT data frame\n");
+    if(i>=LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && ready==false){
+        LOG_INFO("  response is not the expected\n");
+    }else if(c != NULL){
+        c((uart_resp==LORAPHY_CMD_RESPONSE_RADIO_RX) ? LORAPHY_INPUT_DATA:LORAPHY_SENT_DONE);
     }
 }
 /*---------------------------------------------------------------------------*/
@@ -97,11 +81,11 @@ write_uart(char *s, int len)
     LOG_INFO("write UART{%s} len=%d\n", s, len);
 
     for(int i=0;i<len;i++){
-        uart_write_byte(LORAPHY_UART_PORT, *s++);
+        uart_write_byte(LORA_RADIO_UART_PORT, *s++);
     }
 
-    uart_write_byte(LORAPHY_UART_PORT, '\r');
-    uart_write_byte(LORAPHY_UART_PORT, '\n');
+    uart_write_byte(LORA_RADIO_UART_PORT, '\r');
+    uart_write_byte(LORA_RADIO_UART_PORT, '\n');
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -114,8 +98,8 @@ loraphy_init(void)
     //LOG_DBG("%s\n",lorabuf_c_get_buf());
 
     /* UART configuration */
-    uart_init(LORAPHY_UART_PORT);
-    uart_set_input(LORAPHY_UART_PORT, &uart_rx);
+    uart_init(LORA_RADIO_UART_PORT);
+    uart_set_input(LORA_RADIO_UART_PORT, &uart_rx);
 
     /*SEND mac pause*/
     loraphy_prepare_data(LORAPHY_CMD_MAC_PAUSE, LORAPHY_PARAM_NONE, "", -1,LORAPHY_CMD_RESPONSE_U_INT, LORAPHY_CMD_RESPONSE_NONE);

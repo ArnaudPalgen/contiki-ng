@@ -2,15 +2,19 @@
 #define LORAPHY_H_
 
 #include "contiki.h"
+#include "loramac-conf.h"
 
-#define LORAPHY_UART_PORT 1
+//#define LORAPHY_UART_PORT 1
 
 #define LORAPHY_PARAM_VALUE_MAX_SIZE 4
 #define LORAPHY_COMMMAND_VALUE_MAX_SIZE 10
 
+#define LORAPHY_NUM_RADIO_PARAM 6
+
 /*---------------------------------------------------------------------------*/
 typedef enum loraphy_sent_status{
     LORAPHY_SENT_DONE,
+    LORAPHY_INPUT_DATA,
 }loraphy_sent_status_t;
 typedef enum loraphy_param{
     LORAPHY_PARAM_BW,
@@ -63,7 +67,7 @@ void loraphy_set_callback(void (* callback)( loraphy_sent_status_t status));
 }
 
 #define LORAPHY_RX() ({  \
-    loraphy_prepare_data(LORAPHY_CMD_RADIO_RX, LORAPHY_PARAM_NONE, "0", -1, LORAPHY_CMD_RESPONSE_RADIO_RX, LORAPHY_CMD_RESPONSE_RADIO_ERR);  \
+    loraphy_prepare_data(LORAPHY_CMD_RADIO_RX, LORAPHY_PARAM_NONE, "0", -1, LORAPHY_CMD_RESPONSE_OK, LORAPHY_CMD_RESPONSE_NONE);  \
     loraphy_send();  \
     })
 

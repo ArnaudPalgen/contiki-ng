@@ -40,7 +40,7 @@ typedef struct lora_frame_hdr{
 /*Start the LoRaMAC layer*/
 void loramac_root_start(void);
 
-int loramac_input(void);
+void loramac_input(void);
 
 void loramac_send(void);
 
@@ -57,5 +57,6 @@ extern process_event_t loramac_network_joined;//the event that is used when the 
 
 #define LOG_INFO_LORA_HDR(...)    LOG_LORA_HDR(LOG_LEVEL_INFO, __VA_ARGS__)
 #define LOG_DBG_LORA_HDR(...)    LOG_LORA_HDR(LOG_LEVEL_DBG, __VA_ARGS__)
+
 
 #endif /* LORAMAC_H_ */

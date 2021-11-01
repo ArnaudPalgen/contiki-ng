@@ -6,7 +6,6 @@
 /*logging configuration*/
 #define LOG_MODULE "LoRa BUF"
 #define LOG_LEVEL LOG_LEVEL_DBG
-#define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 lorabuf_attr_t lorabuf_attrs[LORABUF_NUM_ATTRS];
 lora_addr_t lorabuf_addrs[LORABUF_NUM_ADDRS];

@@ -24,7 +24,6 @@
 /*logging configuration*/
 #define LOG_MODULE "Framer"
 #define LOG_LEVEL LOG_LEVEL_DBG
-#define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 int
 parse(char *data, int len)

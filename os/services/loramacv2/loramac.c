@@ -10,7 +10,6 @@
 /* Log configuration */
 #define LOG_MODULE "LoRa MAC"
 #define LOG_LEVEL LOG_LEVEL_DBG
-#define LOG_CONF_WITH_COLOR 3
 static char* mac_states_str[3] = {"ALONE", "READY", "WAIT_RESPONSE"};
 static char* mac_command_str[5] = {"JOIN", "JOIN_RESPONSE", "DATA", "ACK", "QUERY"};
 /*---------------------------------------------------------------------------*/
@@ -90,6 +89,7 @@ on_query_timeout(void *ptr)
     //lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, next_seq);
     //next_seq++;
     //loramac_send();
+    pending = true;
     process_post(&loramac_process, loramac_event_output, (process_data_t) false);
     LOG_DBG("   - RESTART query timer\n");
     ctimer_restart(&query_timer);
@@ -115,6 +115,7 @@ on_retransmit_timeout(void *ptr)
 
         LOG_DBG("   - attempts: %d\n", retransmit_attempt);
         LOG_DBG("   - RESTART retransmit timer\n");
+        pending = true;
         process_post(&loramac_process, loramac_event_output, (process_data_t) true);
         ctimer_restart(&retransmit_timer);
     }else{
@@ -267,6 +268,7 @@ send_join_request(void)
     lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
     lorabuf_set_data_len(0);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, JOIN);
+    pending = true;
     process_post(&loramac_process, loramac_event_output, (process_data_t) false);
 }
 /*---------------------------------------------------------------------------*/
@@ -388,6 +390,7 @@ PROCESS_THREAD(loramac_phy_waiter, ev, data) {
         while (ev != loramac_phy_done) {
             PROCESS_WAIT_EVENT();
         }
+        LOG_DBG("POST CONTINUE TO LORAMAC PROCESS\n");
         process_post(&loramac_process, loramac_event_continue, NULL);
     }
 
@@ -408,16 +411,22 @@ PROCESS_THREAD(loramac_process, ev, data)
             PROCESS_WAIT_EVENT_UNTIL(ev == loramac_event_output);
         }else{
             LOG_DBG("PENDING packet\n");
-            pending = false;
         }
+        pending = false;
         /*------------------------------------------------------------------*/
-        /*prepare the packet for transmission*/
-        prepare_last_sent_frame((bool) data);
-        /*------------------------------------------------------------------*/
-        /*send packet to PHY layer*/
         LOG_DBG("BEGIN PHY TX\n");
+        LOG_DBG("send wdt 0\n");
         LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_DISABLE_WDT);
         WAIT_PHY;
+        LOG_DBG("wdt done\n");
+        /*------------------------------------------------------------------*/
+        /*prepare the packet for transmission*/
+        LOG_DBG("prepare packet\n");
+        prepare_last_sent_frame((bool) data);
+        LOG_DBG("packet prepared\n");
+        /*------------------------------------------------------------------*/
+        /*send packet to PHY layer*/
+        LOG_DBG("send tx\n");
         LORAPHY_TX(lorabuf_c_get_buf(), lorabuf_get_data_c_len());
         WAIT_PHY;
         LOG_DBG("PHY TX DONE\n");
@@ -439,7 +448,7 @@ PROCESS_THREAD(loramac_process, ev, data)
             state = READY;
         }
         /*------------------------------------------------------------------*/
-        while(state != READY && !ctimer_expired(&retransmit_timer)){
+        while(state != READY && !ctimer_expired(&retransmit_timer) && state !=ALONE){
             LOG_DBG(" wait state is READY\n");
             PROCESS_WAIT_EVENT();
             if(ev == loramac_event_has_next){

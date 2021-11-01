@@ -4,7 +4,6 @@
 /*logging configuration*/
 #define LOG_MODULE "LoRa ADDR"
 #define LOG_LEVEL LOG_LEVEL_DBG
-#define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 lora_addr_t lora_node_addr;
 

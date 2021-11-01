@@ -14,7 +14,6 @@
 /*logging configuration*/
 #define LOG_MODULE "LoRa ADDR"
 #define LOG_LEVEL LOG_LEVEL_DBG
-#define LOG_CONF_WITH_COLOR 3
 /*---------------------------------------------------------------------------*/
 PROCESS(lora_stack_process, "LoRaMAC-interface");
 /*---------------------------------------------------------------------------*/

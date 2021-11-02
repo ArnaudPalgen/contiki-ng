@@ -33,6 +33,8 @@ loraphy_input()
         if(strstr((const char*)lorabuf_c_get_buf(), uart_response[uart_resp])){
             LOG_INFO("  expected response\n");
             ready = true;
+        }else{
+            LOG_DBG("  not this response\n");
         }
         i++;
     }

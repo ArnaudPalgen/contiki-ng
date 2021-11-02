@@ -12,7 +12,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*logging configuration*/
-#define LOG_MODULE "LoRa ADDR"
+#define LOG_MODULE "LoRa BRIDGE"
 #define LOG_LEVEL LOG_LEVEL_DBG
 /*---------------------------------------------------------------------------*/
 PROCESS(lora_stack_process, "LoRaMAC-interface");
@@ -69,15 +69,10 @@ bridge_input(void)
     memcpy(&(uip_buf), lorabuf_get_buf(), 8);//ipv6 hdr
     memcpy(&(uip_buf[8]), &(ip_src.u8), 16);//ipv6 src addr
     memcpy(&(uip_buf[24]), &(ip_dest.u8), 16);//ipv6 dest addr
-    //---------------------------------
-    LOG_DBG("toto 9\n");
-    //memcpy(&(uip_buf)+40, lorabuf_get_buf()+8, lorabuf_get_data_len()-8);//ipv6 payload
-    memcpy(&(uip_buf[UIP_IPH_LEN]), lorabuf_get_buf()+8, lorabuf_get_data_len()-8);
-    LOG_DBG("toto 10\n");
+
+    memcpy(&(uip_buf[UIP_IPH_LEN]), lorabuf_get_buf()+8, lorabuf_get_data_len()-8);//ipv6 payload
     uip_len = lorabuf_get_data_len()+32;
-    LOG_DBG("toto 11\n");
     tcpip_input();
-    LOG_DBG("toto 12\n");
 }
 /*---------------------------------------------------------------------------*/
 const struct uip_fallback_interface loramac_interface = {

@@ -67,7 +67,7 @@ void loraphy_set_callback(void (* callback)( loraphy_sent_status_t status));
 }
 
 #define LORAPHY_RX() ({  \
-    loraphy_prepare_data(LORAPHY_CMD_RADIO_RX, LORAPHY_PARAM_NONE, "0", -1, LORAPHY_CMD_RESPONSE_OK, LORAPHY_CMD_RESPONSE_NONE);  \
+    loraphy_prepare_data(LORAPHY_CMD_RADIO_RX, LORAPHY_PARAM_NONE, "0", -1, LORAPHY_CMD_RESPONSE_RADIO_RX, LORAPHY_CMD_RESPONSE_RADIO_ERR);  \
     loraphy_send();  \
     })
 

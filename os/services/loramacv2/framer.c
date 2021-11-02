@@ -22,21 +22,17 @@
 #include "sys/log.h"
 /*---------------------------------------------------------------------------*/
 /*logging configuration*/
-#define LOG_MODULE "Framer"
+#define LOG_MODULE "LoRa Framer"
 #define LOG_LEVEL LOG_LEVEL_DBG
 /*---------------------------------------------------------------------------*/
 int
-parse(char *data, int len)
+parse(char *data, int len, int offset)
 {
-    /*
-     * todo
-     * 10 is the len of 'radio rx '
-     * define a macro somewhere instead of hardcoded 10
-     */
-    int increment = 10;
-    //data=data+10;
-    len -= 10;
-    LOG_DBG("<parse>\n");
+    /*skip the first characters*/
+    int increment = offset;
+    len -= offset;
+
+    LOG_DBG("ENTER parse\n");
     LOG_DBG("   > data:{%s}\n", data+increment);
     LOG_DBG("   > len: %d\n", len);
 
@@ -51,14 +47,11 @@ parse(char *data, int len)
     increment += 2;
     memcpy(id_c, data+increment, 4);
     increment += 4;
-    LOG_DBG("   - src addr char[%s:%s]\n", prefix_c, id_c);
 
     prefix = (uint8_t) strtol(prefix_c, NULL, 16);
     id = (uint16_t) strtol(id_c, NULL, 16);
 
     lora_addr_t addr = {prefix, id};
-    LOG_DBG("   - created src addr: ");
-    LOG_DBG_LORA_ADDR(&addr);
 
     lorabuf_set_addr(LORABUF_ADDR_SENDER, &addr);
 
@@ -99,20 +92,11 @@ parse(char *data, int len)
     lorabuf_set_attr(LORABUF_ATTR_MAC_SEQNO, sn);
 
     /*extract payload*/
-    // todo review
-    //uint8_t//
-    //lorabuf_set_data_len(len);
-    //lorabuf_copy_from(data, len);
-    //LOG_DBG("parse finished\n");
-    //LOG_DBG("PAYLOAD LEN = %d\n",len-increment);
     int payload_size = 0;
     char current_byte_c[2];
     uint8_t current_byte = 0;
 
     while((increment-10)<len){
-        //memcpy(payload_size, data+increment, 2);
-        //lorabuf_get_buf()
-        //strtol(cmd, NULL, 16);
         memcpy(current_byte_c, data+increment, 2);
         current_byte = (uint8_t)strtol(current_byte_c, NULL, 16);
         memcpy(lorabuf_get_buf()+payload_size, &current_byte, 1);
@@ -129,8 +113,7 @@ create(char* destination)
 {
     char* dest = destination;
     int size = 0;
-    LOG_DBG("enter create\n");
-    //print_lorabuf();
+    LOG_DBG("ENTER create\n");
 
     char addr_c[6];
     lora_addr_t *addr_p;

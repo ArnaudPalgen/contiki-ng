@@ -110,14 +110,18 @@ on_retransmit_timeout(void *ptr)
         LOG_DBG("RESTART retransmit timer\n");
         pending = true;
         process_post(&loramac_process, loramac_event_output, (process_data_t) true);
-        ctimer_restart(&retransmit_timer);
+        ctimer_restart(&retransmit_timer);//todo review done in  the process ?
     }else{
         retransmit_attempt = 0;
         LOG_WARN("sending failed\n");
         if(last_sent_frame.command == JOIN){
             LOG_DBG("for join -> sleep Lora radio during %s\n",LORAMAC_JOIN_SLEEP_TIME_c);
+            
+            //(LORAMAC_JOIN_SLEEP_TIME_c + random_rand())%(180*CLOCK_SECOND)//todo
             LORAPHY_SLEEP(LORAMAC_JOIN_SLEEP_TIME_c);
-            ctimer_restart(&retransmit_timer);
+            
+            //todo  this value must be equal to the radio sleep time
+            ctimer_restart(&retransmit_timer);//todo timer set done in the process ?
         }else{
             change_notify_state(READY);
         }
@@ -248,13 +252,20 @@ loramac_input(void)
 void
 send_join_request(void)
 {
+    /*
+     *The joining sequence is described by de diagrame below
+     *
+     *    RPL_ROOT                                                                 LORA_ROOT
+     *        | -----------------JOIN[(prefix=node_id[0:8], node_id)]----------------> |
+     *        | <-- JOIN_RESPONSE[(prefix=node_id[0:8], node_id), data=new_prefix] --> |
+    **/
     LOG_DBG("send join request\n");
     lorabuf_set_addr(LORABUF_ADDR_SENDER, &lora_node_addr);
     lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
     lorabuf_set_data_len(0);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, JOIN);
     pending = true;
-    process_post(&loramac_process, loramac_event_output, (process_data_t) false);
+    process_post(&loramac_process, loramac_event_output, (process_data_t) false);//todo false usefull ?
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -269,13 +280,13 @@ set_conf()
         LORAPHY_SET_PARAM(radio_config[i], initial_radio_config[i]);
         i++;
     }else{
-        if (i==LORAPHY_NUM_RADIO_PARAM){
+        if (i==LORAPHY_NUM_RADIO_PARAM){//all radio parameters are set
             i++;
             /*Start the LoRaMAC process and send the JOIN request*/
             LOG_DBG("START LORAMAC PROCESS AND SEND JOIN REQUEST\n");
             process_start(&loramac_process, NULL);
             send_join_request();
-        }else{
+        }else{//the sending of the JOIN request is done 
             process_post(&loramac_process, loramac_phy_done, NULL);
         }
     }
@@ -368,10 +379,17 @@ prepare_last_sent_frame()
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(loramac_process, ev, data)
 {
+    //static char datdata[10]={"48656c6C6F"};
     PROCESS_BEGIN();
     LOG_DBG("BEGIN LORAMAC process\n");
+    PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);)
 
     while(true){
+        //LOG_INFO("A\n");
+        //lorabuf_c_copy_from((const char*)datdata, 10);
+        //PHY_ACTION(LORAPHY_TX(lorabuf_c_get_buf(), lorabuf_get_data_c_len());)
+        //LOG_INFO("B \n");
+        //PHY_ACTION(LORAPHY_RX();)
         if(!pending){
             LOG_DBG("WAITING ...\n");
             PROCESS_WAIT_EVENT();
@@ -380,7 +398,7 @@ PROCESS_THREAD(loramac_process, ev, data)
             }
             if(ev == loramac_event_has_next){
                 LOG_DBG("Frame has next\n");
-                PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);)
+                //PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);)
                 PHY_ACTION(LORAPHY_RX();)
                 LOG_DBG("PHY RX sended \n");
                 LOG_DBG("SET RETRANSMIT TIMER\n");
@@ -394,8 +412,8 @@ PROCESS_THREAD(loramac_process, ev, data)
         }
         pending = false;
         /*------------------------------------------------------------------*/
-        LOG_DBG("send wdt 0\n");
-        PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_DISABLE_WDT);)
+        //LOG_DBG("send wdt 0\n");
+        //PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_DISABLE_WDT);)
         /*------------------------------------------------------------------*/
         /*prepare the packet for transmission*/
         LOG_DBG("prepare packet\n");
@@ -408,7 +426,7 @@ PROCESS_THREAD(loramac_process, ev, data)
         /*actions depending on if a response is expected or not */
         if(last_sent_frame.confirmed || last_sent_frame.command == QUERY || last_sent_frame.command == JOIN){
             LOG_DBG("frame need a response\n");
-            PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);)
+            //PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);)
             LORAPHY_RX();
             LOG_DBG("SET RETRANSMIT TIMER\n");
             ctimer_set(&retransmit_timer, LORAMAC_RETRANSMIT_TIMEOUT, on_retransmit_timeout, NULL);

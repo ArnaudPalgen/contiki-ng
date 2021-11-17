@@ -7,6 +7,7 @@
 #include "loramac.h"
 #include "sys/log.h"
 #include <stdlib.h>
+//#include "sys/rtimer.h"
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #define LOG_MODULE "LoRa PHY"
@@ -26,10 +27,16 @@ loraphy_input()
 
     int i = LORABUF_UART_RESP_FIRST;
     loraphy_cmd_response_t uart_resp=LORAPHY_CMD_RESPONSE_NONE;
+    //bool have_to_print = true;
 
     while(i<LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && !ready){
         uart_resp = (loraphy_cmd_response_t)lorabuf_get_attr(i);
         LOG_DBG("compare {%s} WITH {%s}\n", lorabuf_c_get_buf(), uart_response[uart_resp]);
+        //if(strstr((const char*)lorabuf_c_get_buf(), uart_response[0]) && have_to_print){
+        //    have_to_print = false;
+        //    LOG_INFO("TIME: %ld\n", RTIMER_NOW());
+        //    LOG_INFO("RSECOND: %d\n",RTIMER_SECOND);
+        //}
         if(strstr((const char*)lorabuf_c_get_buf(), uart_response[uart_resp])){
             LOG_INFO("  expected response\n");
             ready = true;

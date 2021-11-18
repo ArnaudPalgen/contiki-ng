@@ -63,6 +63,7 @@ change_notify_state(loramac_state_t new_state)
 void
 loramac_send(void)
 {
+    LOG_INFO("READY: %s\n", (state == READY) ? "true" : "false");
     if(state == READY) {
         lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, DATA);
         lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);

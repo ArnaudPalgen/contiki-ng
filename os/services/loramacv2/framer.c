@@ -166,11 +166,11 @@ create(char* destination)
     /* create payload */
     uint16_t datalen = lorabuf_get_data_len();
     if (datalen> 0){
-        if (datalen%2 !=0){
-            memcpy(dest, "0", 1);
-            dest = dest+1;
-            size = size+1;
-        }
+        //if (datalen%2 !=0){
+        //    memcpy(dest, "0", 1);
+        //    dest = dest+1;
+        //    size = size+1;
+        //}
         
         char char_byte[2];
         uint8_t* lorabuf = lorabuf_get_buf();

@@ -47,6 +47,11 @@ loraphy_input()
     }
     if(i>=LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && ready==false){
         LOG_INFO("  response is not the expected\n");
+        LOG_INFO("  expected: \n");
+        for(int j=LORABUF_UART_RESP_FIRST; j<LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP; j++){
+            LOG_INFO("%s\n", uart_response[(loraphy_cmd_response_t)lorabuf_get_attr(j)]);
+        }
+        LOG_INFO("--\n");
     }else if(c != NULL){
         c((uart_resp==LORAPHY_CMD_RESPONSE_RADIO_RX) ? LORAPHY_INPUT_DATA:LORAPHY_SENT_DONE);
     }
@@ -89,8 +94,10 @@ write_uart(char *s, int len)
     LOG_INFO("write UART{%s} len=%d\n", s, len);
 
     for(int i=0;i<len;i++){
+        printf("%c", s[0]);
         uart_write_byte(LORA_RADIO_UART_PORT, *s++);
     }
+    printf("\n");
 
     uart_write_byte(LORA_RADIO_UART_PORT, '\r');
     uart_write_byte(LORA_RADIO_UART_PORT, '\n');

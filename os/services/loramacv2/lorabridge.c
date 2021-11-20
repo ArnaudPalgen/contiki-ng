@@ -15,13 +15,19 @@
 #define LOG_MODULE "LoRa BRIDGE"
 #define LOG_LEVEL LOG_LEVEL_DBG
 /*---------------------------------------------------------------------------*/
-PROCESS(lora_stack_process, "LoRaMAC-interface");
+//PROCESS(lora_stack_process, "LoRaMAC-interface");
 /*---------------------------------------------------------------------------*/
 static void
 init(void)
 {
     LOG_INFO("LoRa Stack bridge start\n");
-    process_start(&lora_stack_process, NULL);
+    //process_start(&lora_stack_process, NULL);
+    
+    /* Turn off the radio until the node has joined a LoRaMAC network */
+    NETSTACK_MAC.off();
+    
+    /* Start the LoRaMAC network */
+    loramac_root_start();
 }
 /*---------------------------------------------------------------------------*/
 /*
@@ -36,7 +42,7 @@ output(void)
     int uip_index = 0;
     int datalen = 0;
     uint8_t* buf_p = lorabuf_get_buf();
-    lorabuf_clear();
+    //lorabuf_clear();//bugfix
     while(uip_index<uip_len){
         if(uip_index==8){
             // skip src and dest ipv6 addr
@@ -79,29 +85,43 @@ const struct uip_fallback_interface loramac_interface = {
         init, output
 };
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(lora_stack_process, ev, data)
+void
+lora_network_joined()
 {
-    PROCESS_BEGIN();
-
-    /* Turn off the radio until the node has joined a LoRaMAC network */
-    NETSTACK_MAC.off();
-
-    /*todo remove*/
-    /*to make development easier*/
-    PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
-    LOG_DBG("button pressed. wait network is joined\n");
-    loramac_root_start();
-    PROCESS_WAIT_EVENT_UNTIL(ev == loramac_network_joined);
-
-    LOG_DBG("network joined\n");
-
+    LOG_INFO("LoRa network joined\n");
+    
     uip_ipaddr_t prefix;
     uip_ip6addr_u8(&prefix, 0xFD, 0, 0, 0, 0, 0, 0, lora_node_addr.prefix, 0,0,0,0,0,0,0,0);
-
     NETSTACK_ROUTING.root_set_prefix(&prefix, NULL);
+
     NETSTACK_ROUTING.root_start();
     NETSTACK_MAC.on();
 
-    PROCESS_END();
-
 }
+//PROCESS_THREAD(lora_stack_process, ev, data)
+//{
+//    PROCESS_BEGIN();
+//
+//    /* Turn off the radio until the node has joined a LoRaMAC network */
+//    NETSTACK_MAC.off();
+//
+//    /*todo remove*/
+//    /*to make development easier*/
+//    //PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
+//    //LOG_DBG("button pressed. wait network is joined\n");
+//    LOG_DBG("wait network is joined\n");
+//    loramac_root_start();
+//    PROCESS_WAIT_EVENT_UNTIL(ev == loramac_network_joined);
+//
+//    LOG_DBG("network joined\n");
+//
+//    uip_ipaddr_t prefix;
+//    uip_ip6addr_u8(&prefix, 0xFD, 0, 0, 0, 0, 0, 0, lora_node_addr.prefix, 0,0,0,0,0,0,0,0);
+//
+//    NETSTACK_ROUTING.root_set_prefix(&prefix, NULL);
+//    NETSTACK_ROUTING.root_start();
+//    NETSTACK_MAC.on();
+//
+//    PROCESS_END();
+//
+//}

@@ -5,4 +5,6 @@
 
 void bridge_input(void);
 
+void lora_network_joined(void);
+
 #endif /* LORABRIDGE_H */

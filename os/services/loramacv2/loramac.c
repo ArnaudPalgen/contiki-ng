@@ -68,7 +68,7 @@ loramac_send(void)
         lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, DATA);
         lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
         pending = true;
-        process_post(&loramac_process, loramac_event_output, (process_data_t) false);
+        process_post_synch(&loramac_process, loramac_event_output, (process_data_t) false);//todo review this
     }
 }
 /*---------------------------------------------------------------------------*/
@@ -155,8 +155,9 @@ on_join_response(void)
         ctimer_set(&query_timer, LORAMAC_QUERY_TIMEOUT, on_query_timeout, NULL);
         expected_seq ++;
 
-        process_post(PROCESS_BROADCAST, loramac_network_joined, NULL);//signal to all process that the LoRaMAC network is joined
+        //process_post(PROCESS_BROADCAST, loramac_network_joined, NULL);//signal to all process that the LoRaMAC network is joined
         change_notify_state(READY);
+        lora_network_joined();
     }else
     {
         LOG_WARN("incorrect join_response\n");
@@ -393,10 +394,13 @@ PROCESS_THREAD(loramac_process, ev, data)
         //PHY_ACTION(LORAPHY_RX();)
         if(!pending){
             LOG_DBG("WAITING ...\n");
-            PROCESS_WAIT_EVENT();
-            while(ev != loramac_event_has_next && ev!=loramac_event_output){
-                PROCESS_WAIT_EVENT();
-            }
+            //PROCESS_YIELD_UNTIL(ev == loramac_event_has_next || ev == loramac_event_output);
+            PROCESS_YIELD();
+            LOG_INFO("YOYO\n");
+            //PROCESS_WAIT_EVENT();
+            //while(ev != loramac_event_has_next && ev!=loramac_event_output){
+            //    PROCESS_WAIT_EVENT();
+            //}
             if(ev == loramac_event_has_next){
                 LOG_DBG("Frame has next\n");
                 //PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);)

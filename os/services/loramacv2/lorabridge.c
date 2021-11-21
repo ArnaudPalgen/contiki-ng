@@ -13,7 +13,7 @@
 /*---------------------------------------------------------------------------*/
 /*logging configuration*/
 #define LOG_MODULE "LoRa BRIDGE"
-#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_LEVEL LOG_LEVEL_LORABRIDGE
 /*---------------------------------------------------------------------------*/
 //PROCESS(lora_stack_process, "LoRaMAC-interface");
 /*---------------------------------------------------------------------------*/
@@ -42,7 +42,7 @@ output(void)
     int uip_index = 0;
     int datalen = 0;
     uint8_t* buf_p = lorabuf_get_buf();
-    //lorabuf_clear();//bugfix
+    //lorabuf_clear();//review
     while(uip_index<uip_len){
         if(uip_index==8){
             // skip src and dest ipv6 addr

@@ -22,8 +22,8 @@
 #include "sys/log.h"
 /*---------------------------------------------------------------------------*/
 /*logging configuration*/
-#define LOG_MODULE "LoRa Framer"
-#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_MODULE "LoRa FRAMER"
+#define LOG_LEVEL LOG_LEVEL_NONE
 /*---------------------------------------------------------------------------*/
 int
 parse(char *data, int len, int offset)

@@ -9,7 +9,7 @@
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #define LOG_MODULE "LoRa MAC"
-#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_LEVEL LOG_LEVEL_LORAMAC
 static char* mac_states_str[3] = {"ALONE", "READY", "WAIT_RESPONSE"};
 static char* mac_command_str[5] = {"JOIN", "JOIN_RESPONSE", "DATA", "ACK", "QUERY"};
 /*---------------------------------------------------------------------------*/
@@ -68,7 +68,8 @@ loramac_send(void)
         lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, DATA);
         lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
         pending = true;
-        process_post_synch(&loramac_process, loramac_event_output, (process_data_t) false);//todo review this
+        //process_post_synch(&loramac_process, loramac_event_output, (process_data_t) false);//todo review this
+        process_post(&loramac_process, loramac_event_output, (process_data_t) false);
     }
 }
 /*---------------------------------------------------------------------------*/

@@ -9,7 +9,7 @@
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #define LOG_MODULE "LoRa MAC"
-#define LOG_LEVEL LOG_LEVEL_LORAMAC
+#define LOG_LEVEL LOG_LEVEL_INFO
 static char* mac_states_str[3] = {"ALONE", "READY", "WAIT_RESPONSE"};
 static char* mac_command_str[5] = {"JOIN", "JOIN_RESPONSE", "DATA", "ACK", "QUERY"};
 /*---------------------------------------------------------------------------*/
@@ -184,6 +184,7 @@ on_data(void)
     expected_seq = seq+1;
     LOG_DBG("call to bridge ended\n");
     if(lorabuf_get_attr(LORABUF_ATTR_MAC_NEXT)){
+        LOG_INFO("HAS NEXT\n");
         process_post(&loramac_process, loramac_event_has_next, NULL);
     }else{
         LOG_DBG("RESTART query timer\n");
@@ -222,7 +223,7 @@ void
 loramac_input(void)
 {
     LOG_DBG("LORAMAC INPUT\n");
-    print_lorabuf();
+    //print_lorabuf();
     lora_addr_t *dest_addr = lorabuf_get_addr(LORABUF_ADDR_RECEIVER);
     LOG_DBG("   > dest addr: ");
     LOG_DBG_LORA_ADDR(dest_addr);
@@ -388,21 +389,25 @@ PROCESS_THREAD(loramac_process, ev, data)
     PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);)
 
     while(true){
+        LOG_WARN("h1");
         //LOG_INFO("A\n");
         //lorabuf_c_copy_from((const char*)datdata, 10);
         //PHY_ACTION(LORAPHY_TX(lorabuf_c_get_buf(), lorabuf_get_data_c_len());)
         //LOG_INFO("B \n");
         //PHY_ACTION(LORAPHY_RX();)
         if(!pending){
+            LOG_WARN("h2");
             LOG_DBG("WAITING ...\n");
-            //PROCESS_YIELD_UNTIL(ev == loramac_event_has_next || ev == loramac_event_output);
-            PROCESS_YIELD();
+            PROCESS_YIELD_UNTIL(ev == loramac_event_has_next || ev == loramac_event_output);
+            LOG_WARN("h3");
+            //PROCESS_YIELD();
             LOG_INFO("YOYO\n");
             //PROCESS_WAIT_EVENT();
             //while(ev != loramac_event_has_next && ev!=loramac_event_output){
             //    PROCESS_WAIT_EVENT();
             //}
             if(ev == loramac_event_has_next){
+                LOG_WARN("h4");
                 LOG_DBG("Frame has next\n");
                 //PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);)
                 PHY_ACTION(LORAPHY_RX();)
@@ -411,11 +416,14 @@ PROCESS_THREAD(loramac_process, ev, data)
                 ctimer_set(&retransmit_timer, LORAMAC_RETRANSMIT_TIMEOUT, on_retransmit_timeout, NULL);
                 continue;
             }else if(ev == loramac_event_output){
+                LOG_WARN("h5");
                 LOG_DBG("receive packet to send\n");
             }
         }else{
+            LOG_WARN("h6");
             LOG_DBG("PENDING packet\n");
         }
+        LOG_WARN("h7");
         pending = false;
         /*------------------------------------------------------------------*/
         //LOG_DBG("send wdt 0\n");

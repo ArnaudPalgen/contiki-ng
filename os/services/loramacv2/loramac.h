@@ -9,7 +9,9 @@
 #define LORAMAC_MAX_RETRANSMIT 3
 #define LORAMAC_RETRANSMIT_TIMEOUT (CLOCK_SECOND*15) //todo
 #define LORAMAC_RETRANSMIT_TIMEOUT_c "15000"//ms
-#define LORAMAC_JOIN_SLEEP_TIME_c "30000" // in ms. 5000 ms -> 5s
+#define LORAMAC_JOIN_SLEEP_TIME_c "60000" // in ms. 5000 ms -> 5s
+#define LORAMAC_JOIN_SLEEP_TIME (CLOCK_SECOND*60)
+#define LORAMAC_MAX_JOIN_SLEEP_TIME (CLOCK_SECOND*180)
 #define LORAMAC_DISABLE_WDT "0"
 /*---------------------------------------------------------------------------*/
 /*The supported LoRaMAC commands*/

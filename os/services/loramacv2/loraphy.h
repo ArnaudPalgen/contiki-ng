@@ -66,14 +66,14 @@ void loraphy_set_callback(void (* callback)( loraphy_sent_status_t status));
     loraphy_send();\
 }
 
-#define LORAPHY_RX() ({  \
-    loraphy_prepare_data(LORAPHY_CMD_RADIO_RX, LORAPHY_PARAM_NONE, "0", -1, LORAPHY_CMD_RESPONSE_RADIO_RX, LORAPHY_CMD_RESPONSE_RADIO_ERR);  \
-    loraphy_send();  \
-    })
+#define LORAPHY_RX(){\
+    loraphy_prepare_data(LORAPHY_CMD_RADIO_RX, LORAPHY_PARAM_NONE, "0", -1, LORAPHY_CMD_RESPONSE_RADIO_RX, LORAPHY_CMD_RESPONSE_RADIO_ERR);\
+    loraphy_send();\
+}
 
-#define LORAPHY_SLEEP(duration) ({  \
-    loraphy_prepare_data(LORAPHY_CMD_SYS_SLEEP, LORAPHY_PARAM_NONE, duration, -1, LORAPHY_CMD_RESPONSE_OK, LORAPHY_CMD_RESPONSE_NONE);  \
-    loraphy_send();  \
-    })
+#define LORAPHY_SLEEP(duration){\
+    loraphy_prepare_data(LORAPHY_CMD_SYS_SLEEP, LORAPHY_PARAM_NONE, duration, -1, LORAPHY_CMD_RESPONSE_OK, LORAPHY_CMD_RESPONSE_NONE);\
+    loraphy_send();\
+}
 
 #endif /* LORAPHY_H_ */

@@ -13,7 +13,7 @@
 /*---------------------------------------------------------------------------*/
 /*logging configuration*/
 #define LOG_MODULE "LoRa BRIDGE"
-#define LOG_LEVEL LOG_LEVEL_LORABRIDGE
+#define LOG_LEVEL LOG_LEVEL_INFO
 /*---------------------------------------------------------------------------*/
 static void
 init(void)

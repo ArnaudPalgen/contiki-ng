@@ -54,30 +54,38 @@ loramac_print_hdr(lora_frame_hdr_t *hdr)
 void
 send_frame()
 {
+    LOG_DBG("SEND FRAAAAAAAAAAAAAAME 1\n");
     pending = true;
+    LOG_DBG("SEND FRAAAAAAAAAAAAAAME 2\n");
     process_post(&loramac_process, loramac_event_output, NULL);
+    LOG_DBG("SEND FRAAAAAAAAAAAAAAME 3\n");
 }
 /*---------------------------------------------------------------------------*/
 void
 send_query()
 {   
+    LOG_DBG("YOOOO1\n");
     lorabuf_set_addr(LORABUF_ADDR_SENDER, &lora_node_addr);
     lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
     lorabuf_set_data_len(0);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, QUERY);
+    LOG_DBG("YOOOO2\n");
     send_frame();
+    LOG_DBG("YOOOO3\n");
 }
 /*---------------------------------------------------------------------------*/
 void
 set_state(loramac_state_t new_state)
-{
-    LOG_DBG("STATE %s -> %s \n", mac_states_str[state], mac_states_str[new_state]);
-    
+{    
     if (state == WAIT_RESPONSE && new_state == READY && pending_query){
+        LOG_DBG("Pending QUERY\n");
         pending_query = false;
         send_query();
+        LOG_DBG("SENDSENDSEND QUERYYYYYYYY\n");
+
     }else{
         state = new_state;
+        LOG_DBG("STATE %s -> %s \n", mac_states_str[state], mac_states_str[new_state]);
     }
 }
 /*---------------------------------------------------------------------------*/
@@ -186,6 +194,7 @@ on_data(void)
         LOG_DBG("SN greater than expected (%d)\n", expected_seq);
     }
     expected_seq = seq+1;
+    bridge_input();
 
     if(lorabuf_get_attr(LORABUF_ATTR_MAC_NEXT)){
         LOG_DBG("Waiting for another frame. Send QUERY\n");
@@ -195,7 +204,6 @@ on_data(void)
         ctimer_restart(&query_timer);
         set_state(READY);
     }
-    bridge_input();
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -310,8 +318,8 @@ phy_callback(loraphy_sent_status_t status)
         case LORAPHY_INPUT_DATA:
             LOG_DBG("LoRaPHY input data\n");
             parse(lorabuf_c_get_buf(), lorabuf_get_data_c_len(), 10); // 10 is the size of 'radio rx '
+            //process_post(&loramac_process, loramac_phy_done, NULL); // tell to the process that the 'radio rx xx' command is done
             loramac_input();
-            process_post(&loramac_process, loramac_phy_done, NULL); // tell to the process that the 'radio rx xx' command is done
             break;
         default:
             LOG_WARN("Unknown LoRaPHY status\n");
@@ -386,7 +394,9 @@ PROCESS_THREAD(loramac_process, ev, data)
         while(!pending){
             LOG_DBG("Waiting ...\n");
             PROCESS_WAIT_EVENT_UNTIL(ev == loramac_event_output);
+            LOG_DBG("LIBEREEEEEEE\n");
         }
+        LOG_DBG("TOTOOOOOOOOOOOOOOOOOOOOOOOOO\n");
         pending = false;
         LOG_DBG("Receive packet to send\n");
         /*------------------------------------------------------------------*/
@@ -407,7 +417,10 @@ PROCESS_THREAD(loramac_process, ev, data)
             LORAPHY_RX();
             LOG_DBG("Set retransmit timer\n");
             ctimer_set(&retransmit_timer, LORAMAC_RETRANSMIT_TIMEOUT, on_retransmit_timeout, NULL);
-            WAIT_PHY();
+            LOG_DBG("PPPPPP1111\n");
+            //WAIT_PHY();
+            //PROCESS_WAIT_EVENT_UNTIL(ev == loramac_phy_done);
+            //LOG_DBG("PPPPPP2222\n");
         }else{
             LOG_DBG("Frame don't need a response\n");
             set_state(READY);

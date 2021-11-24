@@ -41,6 +41,8 @@ output(void)
     int datalen = 0;
     uint8_t* buf_p = lorabuf_get_buf();
     //lorabuf_clear();//todo review
+    //lorabuf_clear_l2();
+    lorabuf_set_data_len(0);
     while(uip_index<uip_len){
         if(uip_index==8){
             // skip src and dest ipv6 addr

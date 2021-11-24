@@ -36,7 +36,7 @@ init(void)
 static int
 output(void)
 {
-    LOG_DBG("receive packet for LoRa Stack\n");
+    LOG_INFO("Receive packet for LoRa Stack\n");
     int uip_index = 0;
     int datalen = 0;
     uint8_t* buf_p = lorabuf_get_buf();
@@ -68,7 +68,7 @@ output(void)
 void
 bridge_input(void)
 {
-    LOG_DBG("receive packet for UIP Stack\n");
+    LOG_INFO("Receive packet for UIP Stack\n");
     uip_ip6addr_t ip_src, ip_dest;
     lora2ipv6(lorabuf_get_addr(LORABUF_ADDR_SENDER), &ip_src);
     lora2ipv6(lorabuf_get_addr(LORABUF_ADDR_RECEIVER), &ip_dest);

@@ -7,7 +7,10 @@
 #include "sys/node-id.h"
 #include "lorabridge.h"
 #include "random.h"
+//#include "dev/gpio.h"
 /*---------------------------------------------------------------------------*/
+//#define BASE GPIO_PORT_TO_BASE(GPIO_A_NUM)
+//#define MASK GPIO_PIN_MASK(5)
 /* Log configuration */
 #define LOG_MODULE "LoRa MAC"
 #define LOG_LEVEL LOG_LEVEL_DBG
@@ -77,8 +80,8 @@ set_state(loramac_state_t new_state)
         send_query();
 
     }else{
-        state = new_state;
         LOG_DBG("STATE %s -> %s \n", mac_states_str[state], mac_states_str[new_state]);
+        state = new_state;
     }
 }
 /*---------------------------------------------------------------------------*/
@@ -146,7 +149,7 @@ on_join_response(void)
         lorabuf_get_data_len()==1 &&
         lorabuf_get_attr(LORABUF_ATTR_MAC_SEQNO)==0)
     {
-        LOG_DBG("Valid ACK. Stop retransmit timer\n");
+        LOG_DBG("Valid JOIN RESPONSE. Stop retransmit timer\n");
         ctimer_stop(&retransmit_timer);
         retransmit_attempt = 0;
 
@@ -310,8 +313,10 @@ phy_callback(loraphy_sent_status_t status)
             set_conf();
             break;
         case LORAPHY_INPUT_DATA:
+            //GPIO_SET_PIN(BASE, MASK);
             LOG_DBG("LoRaPHY input data\n");
             parse(lorabuf_c_get_buf(), lorabuf_get_data_c_len(), 10); // 10 is the size of 'radio rx '
+            //GPIO_CLR_PIN(BASE, MASK);
             loramac_input();
             break;
         default:
@@ -324,6 +329,8 @@ loramac_root_start(void)
 {
     LOG_INFO("Start LoRaMAC root\n");
     state = ALONE; // initial state
+    //GPIO_SET_OUTPUT(BASE, MASK);
+    //GPIO_CLR_PIN(BASE, MASK);
 
     /* Create events for LoRaMAC */
     loramac_event_output = process_alloc_event();
@@ -388,6 +395,7 @@ PROCESS_THREAD(loramac_process, ev, data)
             LOG_DBG("Waiting ...\n");
             PROCESS_WAIT_EVENT_UNTIL(ev == loramac_event_output);
         }
+        //GPIO_SET_PIN(BASE, MASK);
         pending = false;
         LOG_DBG("Receive packet to send\n");
         /*------------------------------------------------------------------*/
@@ -398,13 +406,19 @@ PROCESS_THREAD(loramac_process, ev, data)
         }
         /*------------------------------------------------------------------*/
         /*send packet to PHY layer*/
+        //GPIO_CLR_PIN(BASE, MASK);
         LOG_DBG("Send packet\n");
+        //GPIO_SET_PIN(BASE, MASK);
         PHY_ACTION(LORAPHY_TX(lorabuf_c_get_buf(), lorabuf_get_data_c_len());)
+        //GPIO_CLR_PIN(BASE, MASK);
         /*------------------------------------------------------------------*/
         /*actions depending on if a response is expected or not */
         if(last_sent_frame.confirmed || last_sent_frame.command == QUERY || last_sent_frame.command == JOIN){
+            //GPIO_CLR_PIN(BASE, MASK);
+            //GPIO_SET_PIN(BASE, MASK);
             LOG_DBG("Frame need a response\n");
             LORAPHY_RX();
+            //GPIO_CLR_PIN(BASE, MASK);
             LOG_DBG("Set retransmit timer\n");
             ctimer_set(&retransmit_timer, LORAMAC_RETRANSMIT_TIMEOUT, on_retransmit_timeout, NULL);
         }else{

@@ -49,7 +49,6 @@ extern const lora_addr_t lora_null_addr;
 #define LOG_LORA_ADDR(level, lora_addr) do {  \
     if((level) <= (LOG_LEVEL)) { \
         loraaddr_print(lora_addr); \
-        printf("\n"); \
     } \
     } while (0)
 

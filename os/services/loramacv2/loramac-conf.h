@@ -8,6 +8,10 @@
 #define LORA_RADIO_UART_PORT 1
 #endif
 
+#ifndef LORA_MAC_CONFIRMED
+#define LORA_MAC_CONFIRMED 1
+#endif
+
 /*---------------------------------------------------------------------------*/
 /*Radio configuration*/
 

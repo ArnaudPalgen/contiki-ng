@@ -7,6 +7,7 @@
 #include "dev/button-hal.h"
 #include "sys/log.h"
 #include "loraaddr.h"
+#include "loramac-conf.h"
 #include <stdio.h>
 
 
@@ -14,6 +15,7 @@
 /*logging configuration*/
 #define LOG_MODULE "LoRa BRIDGE"
 #define LOG_LEVEL LOG_LEVEL_INFO
+PROCESS(lora_stack_process, "LoRaMAC-interface");
 /*---------------------------------------------------------------------------*/
 static void
 init(void)
@@ -23,9 +25,11 @@ init(void)
     
     /* Turn off the radio until the node has joined a LoRaMAC network */
     NETSTACK_MAC.off();
+
+    process_start(&lora_stack_process, NULL);
     
     /* Start the LoRaMAC network */
-    loramac_root_start();
+    //loramac_root_start();
 }
 /*---------------------------------------------------------------------------*/
 /*
@@ -40,8 +44,6 @@ output(void)
     int uip_index = 0;
     int datalen = 0;
     uint8_t* buf_p = lorabuf_get_buf();
-    //lorabuf_clear();//todo review
-    //lorabuf_clear_l2();
     lorabuf_set_data_len(0);
     while(uip_index<uip_len){
         if(uip_index==8){
@@ -57,10 +59,11 @@ output(void)
     LOG_DBG("UIP datalen: %d\n", datalen);
     lorabuf_set_data_len(datalen);
     lora_addr_t src_addr;
-    ipv62lora(&(UIP_IP_BUF->srcipaddr), &src_addr);//convert src address
+    ipv62lora(&(UIP_IP_BUF->srcipaddr), &src_addr);//convert src address 
     lorabuf_set_addr(LORABUF_ADDR_SENDER, &src_addr);
     LOG_DBG("CONVERTED SRC ADDR: ");
     LOG_DBG_LORA_ADDR(&src_addr);
+    lorabuf_set_attr(LORABUF_ATTR_MAC_CONFIRMED, LORA_MAC_CONFIRMED);
     loramac_send();
     return 0;
 }
@@ -96,5 +99,19 @@ lora_network_joined()
 
     NETSTACK_ROUTING.root_start();
     NETSTACK_MAC.on();
+
+}
+
+
+PROCESS_THREAD(lora_stack_process, ev, data)
+{
+    PROCESS_BEGIN();
+
+    /*to make development easier*/
+    PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
+    LOG_DBG("button pressed. wait network is joined\n");
+    loramac_root_start();
+
+    PROCESS_END();
 
 }

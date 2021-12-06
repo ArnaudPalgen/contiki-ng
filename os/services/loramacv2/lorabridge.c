@@ -109,7 +109,7 @@ PROCESS_THREAD(lora_stack_process, ev, data)
 
     /*to make development easier*/
     PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
-    LOG_DBG("button pressed. wait network is joined\n");
+    LOG_INFO("button pressed. wait network is joined\n");
     loramac_root_start();
 
     PROCESS_END();

@@ -13,7 +13,7 @@
 //#define MASK GPIO_PIN_MASK(5)
 /* Log configuration */
 #define LOG_MODULE "LoRa MAC"
-#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_LEVEL LOG_LEVEL_INFO
 static char* mac_states_str[3] = {"ALONE", "READY", "WAIT_RESPONSE"};
 static char* mac_command_str[5] = {"JOIN", "JOIN_RESPONSE", "DATA", "ACK", "QUERY"};
 /*---------------------------------------------------------------------------*/

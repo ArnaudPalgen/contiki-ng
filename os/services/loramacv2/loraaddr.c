@@ -3,7 +3,7 @@
 /*---------------------------------------------------------------------------*/
 /*logging configuration*/
 #define LOG_MODULE "LoRa ADDR"
-#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_LEVEL LOG_LEVEL_NONE
 /*---------------------------------------------------------------------------*/
 lora_addr_t lora_node_addr;
 

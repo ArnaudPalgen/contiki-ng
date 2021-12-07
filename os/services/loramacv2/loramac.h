@@ -7,8 +7,8 @@
 /*---------------------------------------------------------------------------*/
 #define LORAMAC_QUERY_TIMEOUT (30*CLOCK_SECOND)
 #define LORAMAC_MAX_RETRANSMIT 3
-#define LORAMAC_RETRANSMIT_TIMEOUT (CLOCK_SECOND*15) //todo
-#define LORAMAC_RETRANSMIT_TIMEOUT_c "15000"//ms
+#define LORAMAC_RETRANSMIT_TIMEOUT (CLOCK_SECOND*12)
+#define LORAMAC_RETRANSMIT_TIMEOUT_c "12000"//ms
 #define LORAMAC_JOIN_SLEEP_TIME_c "60000" // in ms. 5000 ms -> 5s
 #define LORAMAC_JOIN_SLEEP_TIME (CLOCK_SECOND*60)
 #define LORAMAC_MAX_JOIN_SLEEP_TIME (CLOCK_SECOND*180)
@@ -44,7 +44,7 @@ void loramac_root_start(void);
 
 void loramac_input(void);
 
-void loramac_send(void);
+int loramac_send(void);
 
 void loramac_print_hdr(lora_frame_hdr_t *hdr);
 

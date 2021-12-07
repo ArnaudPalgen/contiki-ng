@@ -85,7 +85,7 @@ set_state(loramac_state_t new_state)
     }
 }
 /*---------------------------------------------------------------------------*/
-void
+int
 loramac_send(void)
 {
     LOG_DBG("State is ready: %s\n", (state == READY) ? "true" : "false");
@@ -93,7 +93,9 @@ loramac_send(void)
         lorabuf_set_attr(LORABUF_ATTR_MAC_CMD, DATA);
         lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &lora_root_addr);
         send_frame();
+        return 0;
     }
+    return -1;
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -317,6 +319,7 @@ phy_callback(loraphy_sent_status_t status)
             LOG_DBG("LoRaPHY input data\n");
             parse(lorabuf_c_get_buf(), lorabuf_get_data_c_len(), 10); // 10 is the size of 'radio rx '
             //GPIO_CLR_PIN(BASE, MASK);
+            process_post(&loramac_process, loramac_phy_done, NULL);
             loramac_input();
             break;
         default:
@@ -407,7 +410,8 @@ PROCESS_THREAD(loramac_process, ev, data)
         /*------------------------------------------------------------------*/
         /*send packet to PHY layer*/
         //GPIO_CLR_PIN(BASE, MASK);
-        LOG_DBG("Send packet\n");
+        LOG_INFO("Send ");
+        LOG_INFO_LORA_HDR(&last_sent_frame);
         //GPIO_SET_PIN(BASE, MASK);
         PHY_ACTION(LORAPHY_TX(lorabuf_c_get_buf(), lorabuf_get_data_c_len());)
         //GPIO_CLR_PIN(BASE, MASK);
@@ -416,11 +420,11 @@ PROCESS_THREAD(loramac_process, ev, data)
         if(last_sent_frame.confirmed || last_sent_frame.command == QUERY || last_sent_frame.command == JOIN){
             //GPIO_CLR_PIN(BASE, MASK);
             //GPIO_SET_PIN(BASE, MASK);
-            LOG_DBG("Frame need a response\n");
-            LORAPHY_RX();
+            LOG_INFO("Frame need a response\n");
             //GPIO_CLR_PIN(BASE, MASK);
             LOG_DBG("Set retransmit timer\n");
             ctimer_set(&retransmit_timer, LORAMAC_RETRANSMIT_TIMEOUT, on_retransmit_timeout, NULL);
+            PHY_ACTION(LORAPHY_RX();)
         }else{
             LOG_DBG("Frame don't need a response\n");
             set_state(READY);

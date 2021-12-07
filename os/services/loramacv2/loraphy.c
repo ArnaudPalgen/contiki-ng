@@ -10,7 +10,7 @@
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #define LOG_MODULE "LoRa PHY"
-#define LOG_LEVEL LOG_LEVEL_NONE
+#define LOG_LEVEL LOG_LEVEL_WARN
 /*---------------------------------------------------------------------------*/
 const char* loraphy_params_values[8]={"bw ", "cr ", "freq ", "mod ", "pwr ", "sf ", "wdt ", ""};
 const char* loraphy_commands_values[5]={"mac pause", "radio set ", "radio rx ", "radio tx ", "sys sleep "};
@@ -35,6 +35,10 @@ loraphy_input()
             LOG_DBG("Not this response\n");
         }
         i++;
+    }
+    if(strstr((const char*)lorabuf_c_get_buf(), uart_response[2])){
+        ready = true;
+        LOG_INFO("Unexpected radio_err. Radio is ready.\n");
     }
     if(i>=LORABUF_UART_RESP_FIRST+LORABUF_NUM_EXP_UART_RESP && ready==false){
         LOG_INFO("Response is not the expected.\n");

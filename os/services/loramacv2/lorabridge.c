@@ -14,7 +14,7 @@
 /*---------------------------------------------------------------------------*/
 /*logging configuration*/
 #define LOG_MODULE "LoRa BRIDGE"
-#define LOG_LEVEL LOG_LEVEL_INFO
+#define LOG_LEVEL LOG_LEVEL_NONE
 PROCESS(lora_stack_process, "LoRaMAC-interface");
 /*---------------------------------------------------------------------------*/
 static void
@@ -64,8 +64,7 @@ output(void)
     LOG_DBG("CONVERTED SRC ADDR: ");
     LOG_DBG_LORA_ADDR(&src_addr);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CONFIRMED, LORA_MAC_CONFIRMED);
-    loramac_send();
-    return 0;
+    return loramac_send();
 }
 /*---------------------------------------------------------------------------*/
 void

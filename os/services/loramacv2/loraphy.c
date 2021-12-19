@@ -10,7 +10,7 @@
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #define LOG_MODULE "LoRa PHY"
-#define LOG_LEVEL LOG_LEVEL_WARN
+#define LOG_LEVEL LOG_LEVEL_NONE
 /*---------------------------------------------------------------------------*/
 const char* loraphy_params_values[8]={"bw ", "cr ", "freq ", "mod ", "pwr ", "sf ", "wdt ", ""};
 const char* loraphy_commands_values[5]={"mac pause", "radio set ", "radio rx ", "radio tx ", "sys sleep "};
@@ -72,7 +72,7 @@ uart_rx(unsigned char c)
         start = true;
         index = 0;
     }else if((int)c != 254 && (int)c != 248 && c!='\n' && (int)c != 192 && (int)c != 240 && c!='\r'){
-        //todo simplify test with ascii value
+        //review simplify test with ascii value
         lorabuf_c_write_char(c, index);
         index ++;
     }

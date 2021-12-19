@@ -1,3 +1,8 @@
+/**
+ * Contains utility functions for LoRa addresses and
+ * the definitions of the node address, the LoRa root address and the null address.
+ */
+
 #include "loraaddr.h"
 #include "sys/log.h"
 /*---------------------------------------------------------------------------*/

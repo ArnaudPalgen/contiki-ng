@@ -1,6 +1,6 @@
 /*
  * Framer for LoRaMAC frames.
- * The format of a LoRaMAC frame is the following (size in bits):
+ * The format of a LoRaMAC frame is the following:
  *
  * |<---24---->|<----24--->|<-1->|<-1-->|<---2--->|<--4--->|<--8--->|<(2040-64=1976)>|
  * | src addr  | dest addr |  k  | next | reserved|command |  seq   |     payload    |
@@ -28,7 +28,7 @@
 int
 parse(char *data, int len, int offset)
 {
-    /*skip the first characters*/
+    /*skip the first characters like 'radio_rx'*/
     int increment = offset;
     len -= offset;
 
@@ -67,7 +67,7 @@ parse(char *data, int len, int offset)
     lora_addr_t addr2 = {prefix, id};
     lorabuf_set_addr(LORABUF_ADDR_RECEIVER, &addr2);
 
-    /*extact flags and command*/
+    /*extact flags and MAC command*/
     char cmd[2];
     memcpy(cmd, data+increment, 2);
     increment += 2;
@@ -84,7 +84,7 @@ parse(char *data, int len, int offset)
     lorabuf_set_attr(LORABUF_ATTR_MAC_NEXT, next);
     lorabuf_set_attr(LORABUF_ATTR_MAC_CONFIRMED, k);
 
-    /* extract SN */
+    /*extract SN*/
     char sn_c[2];
     memcpy(sn_c, data+increment, 2);
     increment += 2;
@@ -118,14 +118,14 @@ create(char* destination)
     char addr_c[6];
     lora_addr_t *addr_p;
     
-    /* create src addr*/
+    /*create src addr*/
     addr_p = lorabuf_get_addr(LORABUF_ADDR_SENDER);
     sprintf(addr_c, "%02X%04X", addr_p->prefix, addr_p->id);
     memcpy(dest,addr_c,6);
     dest = dest+6;
     size = size+6;
 
-    /* create dest addr*/
+    /*create dest addr*/
     addr_p = lorabuf_get_addr(LORABUF_ADDR_RECEIVER);
     sprintf(addr_c, "%02X%04X", addr_p->prefix, addr_p->id);
     memcpy(dest,addr_c,6);
@@ -166,12 +166,6 @@ create(char* destination)
     /* create payload */
     uint16_t datalen = lorabuf_get_data_len();
     if (datalen> 0){
-        //if (datalen%2 !=0){
-        //    memcpy(dest, "0", 1);
-        //    dest = dest+1;
-        //    size = size+1;
-        //}
-        
         char char_byte[2];
         uint8_t* lorabuf = lorabuf_get_buf();
         for(int i=0;i<datalen;i++){

@@ -1,3 +1,7 @@
+/**
+ * The LoRaMAC implementation.
+ */
+
 #ifndef LORAMAC_H_
 #define LORAMAC_H_
 
@@ -5,6 +9,7 @@
 #include "loraaddr.h"
 #include "sys/rtimer.h"
 /*---------------------------------------------------------------------------*/
+// macros definitions
 #define LORAMAC_QUERY_TIMEOUT (30*CLOCK_SECOND)
 #define LORAMAC_MAX_RETRANSMIT 3
 #define LORAMAC_RETRANSMIT_TIMEOUT (CLOCK_SECOND*12)
@@ -39,16 +44,31 @@ typedef struct lora_frame_hdr{
     lora_addr_t dest_addr; // The destination Address
 }lora_frame_hdr_t;
 /*---------------------------------------------------------------------------*/
-/*Start the LoRaMAC layer*/
+/**
+ * \brief Initialize the LoRaMAC layer
+ * 
+ */
 void loramac_root_start(void);
 
+/**
+ * \brief function called for an incoming LoRaMAC frame
+ * 
+ */
 void loramac_input(void);
 
+/**
+ * \brief Function to use to send a LoRaMAC frame from the lorabuf
+ * 
+ */
 int loramac_send(void);
 
+/**
+ * \brief print the a LoRa header
+ * \param hdr the header to print
+ * 
+ */
 void loramac_print_hdr(lora_frame_hdr_t *hdr);
 
-extern process_event_t loramac_network_joined;//the event that is used when the node has joined a LoRaMAC network
 /*---------------------------------------------------------------------------*/
 #define LOG_LORA_HDR(level, lora_hdr) do {  \
     if((level) <= (LOG_LEVEL)) { \

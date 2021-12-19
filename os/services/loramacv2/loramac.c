@@ -1,3 +1,7 @@
+/**
+ * The LoRaMAC implementation.
+ */
+
 #include "sys/log.h"
 #include "loramac.h"
 #include "loraaddr.h"
@@ -11,6 +15,7 @@
 /*---------------------------------------------------------------------------*/
 //#define BASE GPIO_PORT_TO_BASE(GPIO_A_NUM)
 //#define MASK GPIO_PIN_MASK(5)
+
 /* Log configuration */
 #define LOG_MODULE "LoRa MAC"
 #define LOG_LEVEL LOG_LEVEL_INFO
@@ -75,7 +80,7 @@ void
 set_state(loramac_state_t new_state)
 {    
     if (state == WAIT_RESPONSE && new_state == READY && pending_query){
-        LOG_DBG("Pending QUERY\n");
+        LOG_INFO("Pending QUERY\n");
         pending_query = false;
         send_query();
 
@@ -137,6 +142,10 @@ on_retransmit_timeout(void *ptr)
             LORAPHY_SLEEP(LORAMAC_JOIN_SLEEP_TIME_c);
             ctimer_set(&retransmit_timer, interval, on_retransmit_timeout, NULL);
         }else{
+            if(last_sent_frame.command == QUERY){
+                LOG_WARN("restart query timer\n");
+                ctimer_restart(&query_timer);
+            }
             set_state(READY);
         }
     }
@@ -423,8 +432,10 @@ PROCESS_THREAD(loramac_process, ev, data)
             LOG_INFO("Frame need a response\n");
             //GPIO_CLR_PIN(BASE, MASK);
             LOG_DBG("Set retransmit timer\n");
+            PHY_ACTION(LORAPHY_SET_PARAM(LORAPHY_PARAM_WDT, LORAMAC_RETRANSMIT_TIMEOUT_c);)
             ctimer_set(&retransmit_timer, LORAMAC_RETRANSMIT_TIMEOUT, on_retransmit_timeout, NULL);
             PHY_ACTION(LORAPHY_RX();)
+            //LORAPHY_RX();
         }else{
             LOG_DBG("Frame don't need a response\n");
             set_state(READY);

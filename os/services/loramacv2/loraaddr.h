@@ -1,3 +1,9 @@
+/*
+ * The LoRaMac address.
+ * This kind of address is composed of
+ * a 1 byte prefix followed by a 2 bytes identifier.
+ */
+
 #ifndef LORAADDR_H_
 #define LORAADDR_H_
 
@@ -14,14 +20,43 @@ typedef struct lora_addr{
     uint16_t id;
 }lora_addr_t;
 /*---------------------------------------------------------------------------*/
+/**
+ * \brief Copy a lora address to another
+ * \param dest The destination address
+ * \param from The source address
+ * 
+ */
 void loraaddr_copy(lora_addr_t *dest, const lora_addr_t *from);
 
+/**
+ * \brief Compare two lora addresses
+ * \param addr1 The first address
+ * \param addr2 The second address
+ * \return 1 if the addresses are equal, 0 otherwise
+ * 
+ */
 int loraaddr_compare(const lora_addr_t *addr1, const lora_addr_t *addr2);
 
+/**
+ * \brief Set the LoRa address of the node
+ * \param addr The address to set
+ * 
+ */
 void loraaddr_set_node_addr(lora_addr_t *addr);
 
+/**
+ * \brief Print a LoRa address
+ * \param addr The address to print
+ * 
+ */
 void loraaddr_print(const lora_addr_t *addr);
 
+/**
+ * \brief Check if a LoRa address is in the DAG
+ * \param addr The address to check
+ * \return 1 if the address is in the DAG, 0 otherwise
+ * 
+ */
 bool loraaddr_is_in_dag(lora_addr_t *addr);
 /*---------------------------------------------------------------------------*/
 /*
@@ -38,12 +73,26 @@ Where:
   - COMMON_LINK_ADDR_PART is the 6 first bytes of the link layer address and defined as follow: 0x02, 0x12, 0x4B, 0x00, 0x06, 0x0D
   - NODE_ID is the node-id of the node
 */
+
+/**
+ * \brief Convert a LoRa to an IPv6 address
+ * \param src_addr The LoRa address to convert
+ * \param dest_addr The IPv6 address to fill
+ * 
+ */
 void lora2ipv6(lora_addr_t *src_addr, uip_ip6addr_t *dest_addr);
+
+/**
+ * \brief Convert an IPv6 address to a LoRa address
+ * \param src_addr The IPv6 address to convert
+ * \param dest_addr The LoRa address to fill
+ * 
+ */
 void ipv62lora(uip_ip6addr_t *src_addr, lora_addr_t *dest_addr);
 /*---------------------------------------------------------------------------*/
-extern const lora_addr_t lora_root_addr;
-extern lora_addr_t lora_node_addr;
-extern const lora_addr_t lora_null_addr;
+extern const lora_addr_t lora_root_addr; // The root address
+extern lora_addr_t lora_node_addr; // The node address
+extern const lora_addr_t lora_null_addr; // The null address
 /*---------------------------------------------------------------------------*/
 
 #define LOG_LORA_ADDR(level, lora_addr) do {  \

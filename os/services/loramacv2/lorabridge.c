@@ -14,22 +14,18 @@
 /*---------------------------------------------------------------------------*/
 /*logging configuration*/
 #define LOG_MODULE "LoRa BRIDGE"
-#define LOG_LEVEL LOG_LEVEL_NONE
-PROCESS(lora_stack_process, "LoRaMAC-interface");
+#define LOG_LEVEL LOG_LEVEL_INFO
 /*---------------------------------------------------------------------------*/
 static void
 init(void)
 {
     LOG_INFO("LoRa Stack bridge start\n");
-    //process_start(&lora_stack_process, NULL);
     
     /* Turn off the radio until the node has joined a LoRaMAC network */
     NETSTACK_MAC.off();
-
-    process_start(&lora_stack_process, NULL);
     
     /* Start the LoRaMAC network */
-    //loramac_root_start();
+    loramac_root_start();
 }
 /*---------------------------------------------------------------------------*/
 /*
@@ -98,19 +94,5 @@ lora_network_joined()
 
     NETSTACK_ROUTING.root_start();
     NETSTACK_MAC.on();
-
-}
-
-
-PROCESS_THREAD(lora_stack_process, ev, data)
-{
-    PROCESS_BEGIN();
-
-    /*to make development easier*/
-    PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
-    LOG_INFO("button pressed. wait network is joined\n");
-    loramac_root_start();
-
-    PROCESS_END();
 
 }
